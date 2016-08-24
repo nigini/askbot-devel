@@ -217,12 +217,6 @@ def is_login_method_enabled(name):
     setting = getattr(askbot_settings, 'SIGNIN_' + name_key + '_ENABLED', None)
     if setting is not None:
         return setting
-
-    google_method = askbot_settings.SIGNIN_GOOGLE_METHOD
-    if name == 'google':
-        return google_method == 'openid'
-    elif name == 'google-plus':
-        return google_method == 'google-plus'
     return False
 
 def filter_enabled_providers(data):
@@ -468,9 +462,9 @@ def get_enabled_major_login_providers():
             'name': 'facebook',
             'display_name': 'Facebook',
             'type': 'oauth2',
-            'auth_endpoint': 'https://www.facebook.com/dialog/oauth/',
-            'token_endpoint': 'https://graph.facebook.com/oauth/access_token',
-            'resource_endpoint': 'https://graph.facebook.com/',
+            'auth_endpoint': 'https://www.facebook.com/v2.2/dialog/oauth/',
+            'token_endpoint': 'https://graph.facebook.com/v2.2/oauth/access_token',
+            'resource_endpoint': 'https://graph.facebook.com/v2.2/',
             'icon_media_path': 'images/jquery-openid/facebook.gif',
             'get_user_id_function': get_facebook_user_id,
             'response_parser': lambda data: dict(urlparse.parse_qsl(data)),
@@ -567,27 +561,17 @@ def get_enabled_major_login_providers():
     def get_google_user_id(client):
         return client.request('me')['id']
 
-    google_method = askbot_settings.SIGNIN_GOOGLE_METHOD
-    if google_method == 'google-plus':
-        if askbot_settings.GOOGLE_PLUS_KEY and askbot_settings.GOOGLE_PLUS_SECRET:
-            data['google-plus'] = {
-                'name': 'google-plus',
-                'display_name': 'Google',
-                'type': 'oauth2',
-                'auth_endpoint': 'https://accounts.google.com/o/oauth2/auth',
-                'token_endpoint': 'https://accounts.google.com/o/oauth2/token',
-                'resource_endpoint': 'https://www.googleapis.com/plus/v1/people/',
-                'icon_media_path': 'images/jquery-openid/google.gif',
-                'get_user_id_function': get_google_user_id,
-                'extra_auth_params': {'scope': ('profile', 'email', 'openid'), 'openid.realm': askbot_settings.APP_URL}
-            }
-    elif google_method == 'openid':
-        data['google'] = {
-            'name': 'google',
+    if askbot_settings.GOOGLE_PLUS_KEY and askbot_settings.GOOGLE_PLUS_SECRET:
+        data['google-plus'] = {
+            'name': 'google-plus',
             'display_name': 'Google',
-            'type': 'openid-direct',
-            'icon_media_path': 'images/jquery-openid/google-openid.gif',
-            'openid_endpoint': 'https://www.google.com/accounts/o8/id',
+            'type': 'oauth2',
+            'auth_endpoint': 'https://accounts.google.com/o/oauth2/auth',
+            'token_endpoint': 'https://accounts.google.com/o/oauth2/token',
+            'resource_endpoint': 'https://www.googleapis.com/plus/v1/people/',
+            'icon_media_path': 'images/jquery-openid/google.gif',
+            'get_user_id_function': get_google_user_id,
+            'extra_auth_params': {'scope': ('profile', 'email', 'openid'), 'openid.realm': askbot_settings.APP_URL}
         }
 
     data['mozilla-persona'] = {
@@ -602,7 +586,7 @@ def get_enabled_major_login_providers():
         'type': 'openid-direct',
         'icon_media_path': 'images/jquery-openid/yahoo.gif',
         'tooltip_text': _('Sign in with Yahoo'),
-        'openid_endpoint': 'http://yahoo.com',
+        'openid_endpoint': 'https://me.yahoo.com',
     }
     data['aol'] = {
         'name': 'aol',

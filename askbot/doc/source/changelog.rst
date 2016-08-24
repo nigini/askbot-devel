@@ -3,7 +3,11 @@ Changes in Askbot
 
 Development version
 -------------------
+* Applied Akismet check (if enabled) to editing of all content
+* Updated Facebook API to v2.2.
+* Unsubscribe link feature
 * User profile "about" section is per-language (localizable)
+* Tag names with diacritic characters are allowed
 * Inline editing of questions and answer
 * Markdown editor expands automatically
 * Added ASKBOT_LANGUAGE_MODE setting, which can be one of
@@ -16,10 +20,18 @@ Development version
 
 0.10.0 (Dec 7, 2015)
 --------------------
+* Supports Django 1.8
 * Added management command `askbot_rebuild_avatars`
 * Added option to choose gravatar or default avatar for new users
 * Message on the feedback page is editable
 * Added support for the NoCaptcha recaptcha
+
+NOTE::
+  Releases 0.10.x support Django 1.8, 0.9.x - Django 1.7,
+  0.7.x support Django 1.5, 0.8.x - 1.6 and to be used
+  only to migrate to the higher versions of the Django framework
+  from 1.5. See https://pypi.python.org/pypi/askbot/ 
+  to download the latest available version.
 
 0.7.53 (Apr 22, 2015)
 ---------------------
