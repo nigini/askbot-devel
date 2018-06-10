@@ -11,6 +11,8 @@ def akismet_check_spam(text, request):
     """Returns True if spam found, false if not,
     May raise exceptions if something is not right with
     the Akismet account/service/setup"""
+    if not askbot_settings.USE_AKISMET:
+        return False
     try:
         if askbot_settings.USE_AKISMET and askbot_settings.AKISMET_API_KEY == "":
             raise ImproperlyConfigured('You have not set AKISMET_API_KEY')
@@ -31,6 +33,6 @@ def akismet_check_spam(text, request):
         logging.critical('Akismet Key is missing')
     except AkismetError:
         logging.critical('Akismet error: Invalid Akismet key or Akismet account issue!')
-    except Exception, e:
+    except Exception as e:
         logging.critical((u'Akismet error: %s' % unicode(e)).encode('utf-8'))
     return False

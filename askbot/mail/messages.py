@@ -407,10 +407,14 @@ class WelcomeEmail(BaseEmail):
 
 
     def get_mock_context(self):
-        return {'user': get_user()}
+        return {
+            'user': get_user(),
+            'site_name': askbot_settings.APP_SHORT_NAME or 'our community'
+        }
 
     def process_context(self, context):
         context['recipient_user'] = context['user']
+        context['site_name'] = askbot_settings.APP_SHORT_NAME
         return context
 
 class WelcomeEmailRespondable(BaseEmail):
@@ -444,7 +448,8 @@ class WelcomeEmailRespondable(BaseEmail):
         return {
             'recipient_user': get_user(),
             'email_code': email_code,
-            'reply_to_address': 'welcome-' + email_code + '@example.com'
+            'reply_to_address': 'welcome-' + email_code + '@example.com',
+            'site_name': askbot_settings.APP_SHORT_NAME or 'our community'
         }
 
 
@@ -556,6 +561,14 @@ class RejectedPost(BaseEmail):
         return context
 
 
+class AccountManagementRequest(BaseEmail):
+    template_path = 'email/account_management_request'
+    title = _('Account management request')
+    description = _('Sent when user wants to cancel account or download data')
+    mock_contexts = ({'message': 'User Bob, id=52 asked to export personal data.',
+                      'username': 'Bob'},)
+
+
 class ModerationQueueNotification(BaseEmail):
     template_path = 'email/moderation_queue_notification'
     title = _('Moderation queue has items')
@@ -603,7 +616,7 @@ class BatchEmailAlert(BaseEmail):
             'recipient_user': user,
             'admin_email': askbot_settings.ADMIN_EMAIL,
             'site_name': askbot_settings.APP_SHORT_NAME,
-            'is_multilingual': getattr(django_settings, 'ASKBOT_MULTILINGUAL', False)
+            'is_multilingual': askbot.is_multilingual()
         })
         return context
 
@@ -823,7 +836,7 @@ class GroupMessagingEmailAlert(BaseEmail):
 class FeedbackEmail(BaseEmail):
     template_path = 'email/feedback'
     title = _('Feedback email')
-    description = _('Sent when users submits feedback form')
+    description = _('Sent when user submits feedback form')
 
     def process_context(self, context):
         context['site_name'] = askbot_settings.APP_SHORT_NAME

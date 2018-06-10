@@ -25,6 +25,9 @@ The bulk of the management commands fall into this group and will probably be th
 | `add_admin <user_id>`                | Turn user into an administrator                             |
 |                                      | `<user_id>` is a numeric user id of the account             |
 +--------------------------------------+-------------------------------------------------------------+
+| `askbot_export_user_data             | Exports user data in json format                            |
+| --user-id <id> --file <path>         |                                                             |
++--------------------------------------+-------------------------------------------------------------+
 | `apply_hinted_tags                   | Apply tags to all questions in batch given the list of tags |
 | --tag-names <file>`                  | provided with a file. The file must contain tags -          |
 |                                      | one per line. If many tags match - only the most frequent   |
@@ -48,6 +51,8 @@ The bulk of the management commands fall into this group and will probably be th
 | `askbot_clear_moderation_queue`      | Clear all items from the moderation queue                   |
 +--------------------------------------+-------------------------------------------------------------+
 | `askbot_award_badges`                | Awards badges to users (only some badges are supported)     |
++--------------------------------------+-------------------------------------------------------------+
+| `askbot_expire_badges`               | Expire badges (only some badges are supported)              |
 +--------------------------------------+-------------------------------------------------------------+
 | `askbot_recount_badges`              | Fixes badge award counts, use when disabling/enabling badges|
 +--------------------------------------+-------------------------------------------------------------+

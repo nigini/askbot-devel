@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 from askbot.conf import settings as askbot_settings
 from askbot.models import User
@@ -17,6 +18,11 @@ NUM_COMMENTS = 20
 # To ensure that all the actions can be made, repute each user high positive
 # karma. This can be calculated dynamically - max of MIN_REP_TO_... settings
 INITIAL_REPUTATION = 500
+
+if '--with-spam' in sys.argv:
+    BAD_STUFF = "<script>alert('hohoho')</script>"
+else:
+    BAD_STUFF = ''
 
 # Defining template inputs.
 USERNAME_TEMPLATE = "test_user_%s"
@@ -52,14 +58,14 @@ class Command(NoArgsCommand):
             help='Do not prompt the user for input of any kind.'
         )
         parser.add_argument(
-            '--nospam', action='store_true', dest='nospam', default=False,
-            help='Do not add XSS snippets'
+            '--with-spam', action='store_true', dest='with_spam', default=False,
+            help='Add XSS snippets'
         )
 
     def bad_stuff(self):
-        if self.options['nospam']:
-            return ''
-        return "<script>alert('hohoho')</script>"
+        if self.options['with_spam']:
+            return "<script>alert('hohoho')</script>"
+        return ''
 
     def backup_settings(self):
         settings = {}
@@ -83,7 +89,7 @@ class Command(NoArgsCommand):
     def print_if_verbose(self, text):
         "Only print if user chooses verbose output"
         if self.verbosity > 0:
-            print text
+            print(text)
 
     def create_users(self):
         "Create the users and return an array of created users"

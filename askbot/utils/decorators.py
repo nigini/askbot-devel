@@ -87,7 +87,7 @@ def ajax_only(view_func):
             data = view_func(request, *args, **kwargs)
             if data is None:
                 data = {}
-        except Exception, e:
+        except Exception as e:
             #todo: also check field called "message"
             if hasattr(e, 'messages'):
                 if len(e.messages) > 1:
@@ -184,12 +184,17 @@ def profile(log_file):
 
 def check_spam(field):
     '''Decorator to check if there is spam in the form'''
+    # TODO: remove use of this decorator in favor of explicit calls
+    # from within view functions
 
     def decorator(view_func):
         @functools.wraps(view_func)
         def wrapper(request, *args, **kwargs):
 
             if askbot_settings.USE_AKISMET and request.method == "POST":
+                if field not in request.POST:
+                    raise Http404
+
                 comment = smart_str(request.POST[field])
                 if akismet_check_spam(comment, request):
                     logging.debug(

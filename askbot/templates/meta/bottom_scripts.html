@@ -39,10 +39,8 @@
     {% if settings.EDITOR_TYPE == 'tinymce' %}
         askbot['settings']['tinyMCEConfigJson'] = '{{ settings.TINYMCE_CONFIG_JSON|escapejs }}';
     {% endif %}
-    askbot['settings']['commentsEditorType'] = '{{ settings.COMMENTS_EDITOR_TYPE }}';
-    askbot['messages']['askYourQuestion'] = '{{ settings.WORDS_ASK_YOUR_QUESTION }}';
-    askbot['messages']['questionSingular'] = '{{ settings.WORDS_QUESTION_SINGULAR|escapejs }}';
-    askbot['messages']['answerSingular'] = '{{ settings.WORDS_ANSWER_SINGULAR|escapejs }}';
+    askbot['settings']['commentsEditorType'] = '{{ settings.COMMENTS_EDITOR_TYPE|escapejs }}';
+    askbot['messages']['askYourQuestion'] = '{{ settings.WORDS_ASK_YOUR_QUESTION|escapejs }}';
     askbot['messages']['acceptOwnAnswer'] = '{{ settings.WORDS_ACCEPT_OR_UNACCEPT_OWN_ANSWER|escapejs }}';
     askbot['messages']['followQuestions'] = '{{ settings.WORDS_FOLLOW_QUESTIONS|escapejs }}';
     {% if settings.ALLOWED_UPLOAD_FILE_TYPES %}
@@ -111,7 +109,10 @@
         <script type="text/javascript" src="{{ '/js/jquery-openid/jquery.authenticator.js'|media }}"></script>
     {% endif %}
     <!-- End Utils.js -->
-    <script type="text/javascript" src="{{ '/js/live_search.js'|media }}"></script>
+    <script type="text/javascript" src="{{ '/js/searchbar/drop_menu.js'|media }}"></script>
+    <script type="text/javascript" src="{{ '/js/searchbar/tag_warning_box.js'|media }}"></script>
+    <script type="text/javascript" src="{{ '/js/searchbar/full_text_search.js'|media }}"></script>
+    <script type="text/javascript" src="{{ '/js/searchbar/tag_search.js'|media }}"></script>
 {% endcompress %}
 <script type="text/javascript">
     /*<![CDATA[*/

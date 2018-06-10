@@ -1,5 +1,6 @@
 from askbot.utils import decorators
 from askbot.utils.html import sanitize_html
+from askbot.utils.functions import decode_and_loads
 from askbot import const
 from askbot.conf import settings as askbot_settings
 from askbot import models
@@ -154,8 +155,7 @@ def moderation_queue(request):
                     'activity__content_type',
                     'activity__object_id',
                     'activity__question__thread',
-                    'activity__user',
-                    'activity__user__gravatar',
+                    'activity__user'
                 ).order_by(
                     '-activity__active_at'
                 )[:const.USER_VIEW_DATA_SIZE]
@@ -220,7 +220,7 @@ def moderate_post_edits(request):
     if not request.user.is_administrator_or_moderator():
         raise exceptions.PermissionDenied()
 
-    post_data = simplejson.loads(request.body)
+    post_data = decode_and_loads(request.body)
     #{'action': 'decline-with-reason', 'items': ['posts'], 'reason': 1, 'edit_ids': [827]}
 
     memo_set = models.ActivityAuditStatus.objects.filter(id__in=post_data['edit_ids'])
@@ -299,7 +299,7 @@ def moderate_post_edits(request):
         num_posts = 0
         num_ips = 0
 
-        moderate_ips = getattr(django_settings, 'ASKBOT_IP_MODERATION_ENABLED', False)
+        moderate_ips = django_settings.ASKBOT_IP_MODERATION_ENABLED
         # If we block by IPs we always block users and posts
         # so we use a "spider" algorithm to find posts, users and IPs to block.
         # once we find users, posts and IPs, we block all of them summarily.
@@ -318,7 +318,7 @@ def moderate_post_edits(request):
             #to make sure to not block the admin and
             #in case REMOTE_ADDR is a proxy server - not
             #block access to the site
-            good_ips = set(getattr(django_settings, 'ASKBOT_WHITELISTED_IPS', ()))
+            good_ips = set(django_settings.ASKBOT_WHITELISTED_IPS)
             good_ips.add(request.META['REMOTE_ADDR'])
             ips = ips - good_ips
 

@@ -131,23 +131,14 @@ askbot.validators = askbot.validators || {};
 
 askbot.validators.titleValidator = function (text) {
     text = $.trim(text);
-    if (text === '') {
-        throw interpolate(
-                gettext('enter %(question)s title'),
-                {'question': askbot.messages.questionSingular},
-                true
-            );
-    } else if (text.length < askbot.settings.minTitleLength) {
+    if (text.length < askbot.settings.minTitleLength) {
         throw interpolate(
                         ngettext(
-                            '%(question)s must have > %(length)s character',
-                            '%(question)s must have > %(length)s characters',
+                            'enter > %(length)s character',
+                            'enter > %(length)s characters',
                             askbot.settings.minTitleLength
                         ),
-                        {
-                            'question': askbot.messages.questionSingular,
-                            'length': askbot.settings.minTitleLength
-                        },
+                        {'length': askbot.settings.minTitleLength},
                         true
                     );
     }
@@ -157,6 +148,8 @@ askbot.validators.questionDetailsValidator = function (text) {
     text = $.trim(text);
     var minLength = askbot.settings.minQuestionBodyLength;
     if (minLength && (text.length < minLength)) {
+        /* todo - for tinymce text extract text from html 
+            otherwise html tags will be counted and user misled */
         throw interpolate(
                     ngettext(
                         'details must have > %s character',
@@ -169,19 +162,22 @@ askbot.validators.questionDetailsValidator = function (text) {
 };
 
 askbot.validators.answerValidator = function (text) {
-    text = $.trim(text);
     var minLength = askbot.settings.minAnswerBodyLength;
-    if (minLength && (text.length < minLength)) {
+    var textLength
+    text = $.trim(text);
+    if (askbot.settings.editorType == 'tinymce') {
+        textLength = $('<p>' + text + '</p>').text().length;
+    } else {
+        textLength = text.length;
+    }
+    if (minLength && (textLength < minLength)) {
         throw interpolate(
                 ngettext(
-                    '%(answer)s must be > %(length)s character',
-                    '%(answer)s must be > %(length)s characters',
+                    'enter > %(length)s character',
+                    'enter > %(length)s characters',
                     minLength
                 ),
-                {
-                    'answer': askbot.messages.answerSingular,
-                    'length': minLength
-                },
+                {'length': minLength},
                 true
             );
     }
@@ -230,14 +226,11 @@ var CPValidator = (function () {
                     required: ' ' + gettext('enter your question'),
                     minlength: interpolate(
                                     ngettext(
-                                        '%(question)s must have > %(length)s character',
-                                        '%(question)s must have > %(length)s characters',
+                                        'enter > %(length)s character',
+                                        'enter > %(length)s characters',
                                         askbot.settings.minTitleLength
                                     ),
-                                    {
-                                        'question': askbot.messages.questionSingular,
-                                        'length': askbot.settings.minTitleLength
-                                    },
+                                    {'length': askbot.settings.minTitleLength},
                                     true
                                 )
                 }
@@ -257,14 +250,11 @@ var CPValidator = (function () {
                     required: ' ' + gettext('content cannot be empty'),
                     minlength: interpolate(
                                     ngettext(
-                                        '%(answer)s must be > %(length)s character',
-                                        '%(answer)s must be > %(length)s characters',
+                                        'enter > %(length)s character',
+                                        'enter > %(length)s characters',
                                         askbot.settings.minAnswerBodyLength
                                     ),
-                                    {
-                                        'answer': askbot.messages.answerSingular,
-                                        'length': askbot.settings.minAnswerBodyLength
-                                    },
+                                    {'length': askbot.settings.minAnswerBodyLength},
                                     true
                                 )
                 }
@@ -1403,7 +1393,7 @@ var questionRetagger = (function () {
                     showMessage(tagsList, json.message);
                 }
             },
-            error: function (xhr, textStatus, errorThrown) {
+            error: function (xhr, textStatus) {
                 showMessage(tagsList, gettext('sorry, something is not right here'));
                 cancelRetag();
             }
@@ -2048,6 +2038,12 @@ TinyMCE.onInitHook = function () {
             tinyMCE.execCommand('mceSpellCheck', true);
         }, 1);
     }
+    $('.mceStatusbar').remove();
+};
+
+TinyMCE.onChangeHook = function (editor) {
+    tinyMCE.triggerSave();
+    $(tinyMCE.get(editor.id).getElement()).change();
 };
 
 /* 3 dummy functions to match WMD api */
@@ -2063,7 +2059,6 @@ TinyMCE.prototype.start = function () {
     };
     opts = $.extend(opts, extraOpts);
     tinyMCE.init(opts);
-    $('.mceStatusbar').remove();
     if (this._text) {
         this.setText(this._text);
     }
@@ -2602,7 +2597,7 @@ EditCommentForm.prototype.getSaveHandler = function () {
                 me.detach();
                 commentsElement.trigger('askbot.afterCommentSubmitSuccess');
             },
-            error: function (xhr, textStatus, errorThrown) {
+            error: function (xhr, textStatus) {
                 me._comment.getElement().show();
                 showMessage(me._comment.getElement(), xhr.responseText, 'after');
                 me._comment.setDraftStatus(false);
@@ -3227,157 +3222,6 @@ var socialSharing = (function () {
         }
     };
 })();
-
-/**
- * @constructor
- * @extends {SimpleControl}
- */
-var QASwapper = function () {
-    SimpleControl.call(this);
-    this._ans_id = null;
-};
-inherits(QASwapper, SimpleControl);
-
-QASwapper.prototype.decorate = function (element) {
-    this._element = element;
-    this._ans_id = parseInt(element.attr('id').split('-').pop());
-    var me = this;
-    this.setHandler(function () {
-        me.startSwapping();
-    });
-};
-
-QASwapper.prototype.startSwapping = function () {
-    /* jshint loopfunc:true */
-    while (true) {
-        var title = prompt(gettext('Please enter question title (>10 characters)'));
-        if (title.length >= 10) {
-            var data = {new_title: title, answer_id: this._ans_id};
-            $.ajax({
-                type: 'POST',
-                cache: false,
-                dataType: 'json',
-                url: askbot.urls.swap_question_with_answer,
-                data: data,
-                success: function (data) {
-                    window.location.href = data.question_url;
-                }
-            });
-            break;
-        }
-    }
-    /* jshint loopfunc:false */
-};
-
-/**
- * @constructor
- * An element that encloses an editor and everything inside it.
- * By default editor is hidden and user sees a box with a prompt
- * suggesting to make a post.
- * When user clicks, editor becomes accessible.
- */
-var FoldedEditor = function () {
-    WrappedElement.call(this);
-};
-inherits(FoldedEditor, WrappedElement);
-
-FoldedEditor.prototype.getEditor = function () {
-    return this._editor;
-};
-
-FoldedEditor.prototype.getEditorInputId = function () {
-    return this._element.find('textarea').attr('id');
-};
-
-FoldedEditor.prototype.onAfterOpenHandler = function () {
-    var editor = this.getEditor();
-    if (editor) {
-        editor.start();
-        setTimeout(function () { 
-            editor.focus(); 
-        }, 500);
-    }
-};
-
-FoldedEditor.prototype.getOpenHandler = function () {
-    var editorBox = this._editorBox;
-    var promptBox = this._prompt;
-    var externalTrigger = this._externalTrigger;
-    var me = this;
-    return function () {
-        if (askbot.data.userIsReadOnly === true) {
-            notify.show(gettext('Sorry, you have only read access'));
-        } else {
-            promptBox.hide();
-            editorBox.show();
-            var element = me.getElement();
-            element.addClass('unfolded');
-
-            /* make the editor one shot - once it unfolds it's
-            * not accepting any events
-            */
-            element.unbind('click');
-            element.unbind('focus');
-
-            /* this function will open the editor
-            * and focus cursor on the editor
-            */
-            me.onAfterOpenHandler();
-
-            /* external trigger is a clickable target
-            * placed outside of the this._element
-            * that will cause the editor to unfold
-            */
-            if (externalTrigger) {
-                var label = me.makeElement('label');
-                label.html(externalTrigger.html());
-                //set what the label is for
-                label.attr('for', me.getEditorInputId());
-                externalTrigger.replaceWith(label);
-            }
-        }
-    };
-};
-
-FoldedEditor.prototype.setExternalTrigger = function (element) {
-    this._externalTrigger = element;
-};
-
-FoldedEditor.prototype.decorate = function (element) {
-    this._element = element;
-    this._prompt = element.find('.prompt');
-    this._editorBox = element.find('.editor-proper');
-
-    var editorType = askbot.settings.editorType;
-    var editor;
-
-    if (editorType === 'tinymce') {
-        editor = new TinyMCE();
-        editor.setId('editor');
-    } else if (editorType === 'markdown') {
-        editor = new WMD({'minLines': 10});
-        editor.setIdSeed('');
-    } else {
-        throw 'wrong editor type "' + editorType + '"'
-    }
-    editor.setTextareaName('text');
-
-    var placeHolder = element.find('.editor-placeholder');
-    editor.setText(placeHolder.data('draftAnswer'));
-    placeHolder.append(editor.getElement());
-    //editor.start();
-
-    this._editor = editor;
-
-    var openHandler = this.getOpenHandler();
-    element.click(openHandler);
-    element.focus(openHandler);
-    if (this._externalTrigger) {
-        this._externalTrigger.click(openHandler);
-    }
-};
-
-
 
 /**
  * @constructor
@@ -5046,7 +4890,7 @@ CategorySelectorLoader.prototype.getSaveHandler = function () {
                     showMessage(me.getElement(), json.message);
                 }
             },
-            error: function (xhr, textStatus, errorThrown) {
+            error: function (xhr) {
                 showMessage(tagsDiv, 'sorry, something is not right here');
                 cancelRetag();
             }
@@ -5115,10 +4959,6 @@ $(document).ready(function () {
         var comments = new PostCommentsWidget();
         comments.decorate($(element));
     });
-    $('[id^="swap-question-with-answer-"]').each(function (idx, element) {
-        var swapper = new QASwapper();
-        swapper.decorate($(element));
-    });
     $('[id^="post-id-"]').each(function (idx, element) {
         var deleter = new DeletePostLink();
         //confusingly .question-delete matches the answers too need rename
@@ -5164,7 +5004,7 @@ $(document).ready(function () {
         };
 
         var fakeUserAc = new AutoCompleter({
-            url: '/get-users-info/',//askbot.urls.get_users_info,
+            url: askbot.urls.get_users_info,
             minChars: 1,
             useCache: true,
             matchInside: true,

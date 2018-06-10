@@ -2,7 +2,7 @@
 these automatically catch email-related exceptions
 """
 from django.conf import settings as django_settings
-DEBUG_EMAIL = getattr(django_settings, 'ASKBOT_DEBUG_INCOMING_EMAIL', False)
+DEBUG_EMAIL = django_settings.ASKBOT_DEBUG_INCOMING_EMAIL
 
 import logging
 import os
@@ -17,7 +17,6 @@ from askbot.utils import url_utils
 from askbot.utils.file_utils import store_file
 from askbot.utils.html import absolutize_urls
 from askbot.utils.html import get_text_from_html
-from bs4 import BeautifulSoup
 from django.core import mail
 from django.core.exceptions import PermissionDenied
 from django.forms import ValidationError
@@ -60,9 +59,10 @@ def _send_mail(subject_line, body_text, sender_email, recipient_list, headers=No
         message_class = mail.EmailMessage
 
     from askbot.models import User
+    from askbot.models.user import InvitedModerator
     email_list = list()
     for recipient in recipient_list:
-        if isinstance(recipient, User):
+        if isinstance(recipient, (User, InvitedModerator)):
             email_list.append(recipient.email)
         else:
             email_list.append(recipient)
@@ -99,8 +99,8 @@ def send_mail(
     if raise_on_failure is True, exceptions.EmailNotSent is raised
     `attachments` is a tuple of triples ((filename, filedata, mimetype), ...)
     """
-    from_email = from_email or django_settings.DEFAULT_FROM_EMAIL \
-                                   or  askbot_settings.ADMIN_EMAIL
+    from_email = from_email or askbot_settings.ADMIN_EMAIL \
+                            or django_settings.DEFAULT_FROM_EMAIL
     body_text = absolutize_urls(body_text)
     try:
         assert(subject_line is not None)
@@ -114,7 +114,7 @@ def send_mail(
             attachments=attachments
         )
         logging.debug('sent update to %s' % ','.join(recipient_list))
-    except Exception, error:
+    except Exception as error:
         sys.stderr.write('\n' + unicode(error).encode('utf-8') + '\n')
         if raise_on_failure == True:
             raise exceptions.EmailNotSent(unicode(error))
@@ -128,19 +128,13 @@ def mail_moderators(
     """sends email to forum moderators and admins
     """
     body_text = absolutize_urls(body_text)
-    from django.db.models import Q
-    from askbot.models import User
-    recipient_list = User.objects.filter(
-                    Q(askbot_profile__status='m') | Q(is_superuser=True)
-                ).filter(
-                    is_active = True
-                ).values_list('email', flat=True)
-    recipient_list = set(recipient_list)
+    from askbot.models.user import get_moderator_emails
+    recipient_list = get_moderator_emails()
 
     send_mail(
         subject_line=subject_line,
         body_text=body_text,
-        from_email=getattr(django_settings, 'DEFAULT_FROM_EMAIL', ''),
+        from_email=django_settings.DEFAULT_FROM_EMAIL,
         recipient_list=recipient_list,
         raise_on_failure=raise_on_failure,
         headers=headers
@@ -427,13 +421,13 @@ def process_emailed_question(
                 group_id=group_id
             )
         else:
-            raise ValidationError()
+            raise ValidationError('unable to post question by email')
 
     except User.DoesNotExist:
         bounce_email(email_address, subject, reason = 'unknown_user')
     except User.MultipleObjectsReturned:
         bounce_email(email_address, subject, reason = 'problem_posting')
-    except PermissionDenied, error:
+    except PermissionDenied as error:
         bounce_email(
             email_address,
             subject,

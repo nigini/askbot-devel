@@ -520,7 +520,10 @@ DEPENDENCY_URLS = {
     'mathjax': 'http://www.mathjax.org/resources/docs/?installation.html',
     'recaptcha': 'http://google.com/recaptcha',
     'twitter-apps': 'http://dev.twitter.com/apps/',
-    'mediawiki-oauth-extension': 'https://www.mediawiki.org/wiki/Extension:OAuth'
+    'mediawiki-oauth-extension': 'https://www.mediawiki.org/wiki/Extension:OAuth',
+    'yammer-apps': 'https://www.yammer.com/client_applications',
+    'windows-live-apps': 'https://apps.dev.microsoft.com/#/appList',
+    'microsoft-azure-apps': 'https://apps.dev.microsoft.com/#/appList',
 }
 
 PASSWORD_MIN_LENGTH = 8

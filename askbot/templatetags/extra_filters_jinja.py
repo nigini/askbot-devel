@@ -29,7 +29,6 @@ from askbot.utils.markup import markdown_input_converter
 from askbot.utils.markup import convert_text as _convert_text
 from askbot.utils.slug import slugify
 from askbot.utils.pluralization import py_pluralize as _py_pluralize
-from askbot.shims.django_shims import ResolverMatch
 
 from django_countries import countries
 from django_countries import settings as countries_settings
@@ -118,7 +117,7 @@ def can_see_private_user_data(viewer, target):
 def clean_login_url(url):
     """pass through, unless user was originally on the logout page"""
     try:
-        resolver_match = ResolverMatch(resolve(url))
+        resolver_match = resolve(url)
         from askbot.views.readers import question
         if resolver_match.func == question:
             return url
@@ -137,7 +136,7 @@ def transurl(url):
         raise ValueError(
             u'string %s is not good for url - must be ascii' % url
         )
-    if getattr(django_settings, 'ASKBOT_TRANSLATE_URL', False):
+    if django_settings.ASKBOT_TRANSLATE_URL:
         return urllib.quote(_(url).encode('utf-8'))
     return url
 
@@ -270,9 +269,9 @@ def make_template_filter_from_permission_assertion(
     register.filter(filter_name, filter_function)
     return filter_function
 
-
 @register.filter
 def can_moderate_user(user, other_user):
+    """True, if user can moderate account of `other_user`"""
     if user.is_authenticated() and user.can_moderate_user(other_user):
         return True
     return False

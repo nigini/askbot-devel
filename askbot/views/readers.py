@@ -444,7 +444,7 @@ def question(request, id):#refactor - long subroutine. display question body, an
 
     try:
         question_post.assert_is_visible_to(request.user)
-    except exceptions.QuestionHidden, error:
+    except exceptions.QuestionHidden as error:
         request.user.message_set.create(message = unicode(error))
         return HttpResponseRedirect(reverse('index'))
 
@@ -490,11 +490,11 @@ def question(request, id):#refactor - long subroutine. display question body, an
 
         try:
             show_comment.assert_is_visible_to(request.user)
-        except exceptions.AnswerHidden, error:
+        except exceptions.AnswerHidden as error:
             request.user.message_set.create(message = unicode(error))
             #use reverse function here because question is not yet loaded
             return HttpResponseRedirect(reverse('question', kwargs = {'id': id}))
-        except exceptions.QuestionHidden, error:
+        except exceptions.QuestionHidden as error:
             request.user.message_set.create(message = unicode(error))
             return HttpResponseRedirect(reverse('index'))
 
@@ -509,7 +509,7 @@ def question(request, id):#refactor - long subroutine. display question body, an
 
         try:
             show_post.assert_is_visible_to(request.user)
-        except django_exceptions.PermissionDenied, error:
+        except django_exceptions.PermissionDenied as error:
             request.user.message_set.create(message = unicode(error))
             return HttpResponseRedirect(reverse('question', kwargs = {'id': id}))
 
@@ -599,7 +599,7 @@ def question(request, id):#refactor - long subroutine. display question body, an
         if drafts.count() > 0:
             initial['text'] = drafts[0].get_text()
 
-    custom_answer_form_path = getattr(django_settings, 'ASKBOT_NEW_ANSWER_FORM', None)
+    custom_answer_form_path = django_settings.ASKBOT_NEW_ANSWER_FORM
     if custom_answer_form_path:
         answer_form_class = load_module(custom_answer_form_path)
     else:
@@ -761,7 +761,7 @@ def get_perms_data(request):
         'MIN_REP_TO_VIEW_OFFENSIVE_FLAGS',
     )
 
-    if askbot_settings.ALLOW_ASKING_BY_EMAIL or askbot_settings.REPLY_BY_EMAIL:
+    if askbot_settings.REPLY_BY_EMAIL:
         items += (
             'MIN_REP_TO_POST_BY_EMAIL',
             'MIN_REP_TO_TWEET_ON_OTHERS_ACCOUNTS',

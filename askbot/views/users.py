@@ -40,7 +40,8 @@ from askbot.utils.slug import slugify
 from askbot.utils.html import sanitize_html
 from askbot.mail import send_mail
 from askbot.utils.translation import get_language
-from askbot.mail.messages import UnsubscribeLink
+from askbot.mail.messages import (AccountManagementRequest,
+                                  UnsubscribeLink)
 from askbot.utils.http import get_request_info
 from askbot.utils import decorators
 from askbot.utils import functions
@@ -53,6 +54,8 @@ from askbot import models
 from askbot import exceptions
 from askbot.models.badges import award_badges_signal
 from askbot.models.tag import format_personal_group_name
+from askbot.models.post import PostRevision
+from askbot.models.user import get_moderator_emails
 from askbot.search.state_manager import SearchState
 from askbot.utils import url_utils
 from askbot.utils.loading import load_module
@@ -258,12 +261,45 @@ def show_users(request, by_group=False, group_id=None, group_slug=None):
     return render(request, 'users.html', data)
 
 @csrf.csrf_protect
+def manage_account(request, subject, context):
+    """Allows requesting a data export, termination of account,
+    anonymization of data and termination of the account."""
+    if request.user != subject:
+        msg = _('Sorry, something is not right here...')
+        request.user.message_set.create(message=msg)
+        return HttpResponseRedirect(subject.get_absolute_url())
+
+    page_url = subject.get_profile_url(profile_section='manage-account')
+    if request.method == 'POST':
+        if 'terminate_account' in request.POST:
+            admin_msg = _('User %(username)s, id=%(id)s, %(email)s '
+                          'asked to terminate the account.')
+        elif 'export_data' in request.POST:
+            admin_msg = _('User %(username)s, id=%(id)s, %(email)s '
+                          'asked to export personal data.')
+        else:
+            return HttpResponseRedirect(page_url)
+
+        admin_msg = admin_msg % {'username': subject.username,
+                                 'id': subject.pk,
+                                 'email': subject.email}
+
+        email = AccountManagementRequest({'message': admin_msg,
+                                          'username': subject.username})
+        mod_emails = get_moderator_emails()
+        email.send(mod_emails)
+
+        user_msg = _('Thank you, you will soon hear from the site administrator.')
+        request.user.message_set.create(message=user_msg)
+
+    return render(request, 'user_profile/user_manage_account.html', context)
+
+@csrf.csrf_protect
 def user_moderate(request, subject, context):
-    """user subview for moderation
-    """
+    """User subview for moderation"""
     moderator = request.user
 
-    if moderator.is_authenticated() and not moderator.can_moderate_user(subject):
+    if not (moderator.is_authenticated() and moderator.can_moderate_user(subject)):
         raise Http404
 
     user_rep_changed = False
@@ -304,7 +340,7 @@ def user_moderate(request, subject, context):
                             raise_on_failure = True
                         )
                     message_sent = True
-                except exceptions.EmailNotSent, e:
+                except exceptions.EmailNotSent as e:
                     email_error_message = unicode(e)
                 send_message_form = forms.SendMessageForm()
         else:
@@ -763,11 +799,29 @@ def user_recent(request, user, context):
                 badge=content.badge,
             )
         else:
+            if hasattr(content, 'thread'):
+                # this is the old way, where events
+                # were tied to posts, rather then revisions
+                # old records might exist in the database
+                # that still satisfy this condition
+                event_title = content.thread.title
+                event_summary = content.summary
+            elif hasattr(content, 'post'):
+                # revision. In the future here we only
+                # user revisions here, because this reflects
+                # the activity better
+                event_title = content.post.thread.title
+                event_summary = content.get_snippet()
+            else:
+                # don't know what to do here...
+                event_title = ''
+                event_summary = ''
+                
             event = Event(
                 time=activity.active_at,
                 type=activity.activity_type,
-                title=content.thread.title,
-                summary=content.summary,
+                title=event_title,
+                summary=event_summary,
                 url=content.get_absolute_url()
             )
 
@@ -839,11 +893,13 @@ def user_responses(request, user, context):
     section = request.GET.get('section', 'forum')
 
     if section == 'forum':
+        #this is for the on-screen notifications
         activity_types = const.RESPONSE_ACTIVITY_TYPES_FOR_DISPLAY
         activity_types += (const.TYPE_ACTIVITY_MENTION,)
     elif section == 'join_requests':
         return show_group_join_requests(request, user, context)
     elif section == 'messages':
+        #this is for the private messaging feature
         if request.user != user:
             if askbot_settings.ADMIN_INBOX_ACCESS_ENABLED == False:
                 raise Http404
@@ -880,6 +936,9 @@ def user_responses(request, user, context):
     else:
         raise Http404
 
+    #code below takes care only of on-screen notifications about
+    #the forum activity - such as answers and comments from other users
+    #
     #2) load the activity notifications according to activity types
     #todo: insert pagination code here
     memo_set = request.user.get_notifications(activity_types)
@@ -906,12 +965,17 @@ def user_responses(request, user, context):
         act_message = act.get_activity_type_display()
         act_type = 'edit'
 
+        if isinstance(obj, PostRevision):
+            url = obj.post.get_absolute_url()
+        else:
+            url = obj.get_absolute_url()
+
         response = {
             'id': memo.id,
             'timestamp': act.active_at,
             'user': act_user,
             'is_new': memo.is_new(),
-            'url': act.get_absolute_url(),
+            'url': url,
             'snippet': act.get_snippet(),
             'title': act.question.thread.title,
             'message_type': act_message,
@@ -941,14 +1005,12 @@ def user_responses(request, user, context):
     #6) sort responses by time
     filtered_message_list.sort(lambda x,y: cmp(y['timestamp'], x['timestamp']))
 
-    reject_reasons = models.PostFlagReason.objects.all().order_by('title')
     data = {
         'active_tab':'users',
         'page_class': 'user-profile-page',
         'tab_name' : 'inbox',
         'inbox_section': section,
         'page_title' : _('profile - responses'),
-        'post_reject_reasons': reject_reasons,
         'messages' : filtered_message_list,
     }
     context.update(data)
@@ -1001,6 +1063,8 @@ def user_reputation(request, user, context):
     reputes = models.Repute.objects.filter(
                                         user=user,
                                         language_code=get_language()
+                                    ).order_by(
+                                        '-reputed_at'
                                     ).select_related(
                                         'question',
                                         'question__thread',
@@ -1010,7 +1074,8 @@ def user_reputation(request, user, context):
 
     def format_graph_data(raw_data, user):
         # prepare data for the graph - last values go in first
-        rep_list = ['[%s,%s]' % (calendar.timegm(datetime.datetime.now().timetuple()) * 1000, user.reputation)]
+        final_rep = user.get_localized_profile().reputation + const.MIN_REPUTATION
+        rep_list = ['[%s,%s]' % (calendar.timegm(datetime.datetime.now().timetuple()) * 1000, final_rep)]
         for rep in raw_data:
             rep_list.append('[%s,%s]' % (calendar.timegm(rep.reputed_at.timetuple()) * 1000, rep.reputation))
 
@@ -1027,7 +1092,9 @@ def user_reputation(request, user, context):
         raw_graph_data = reputes
     else:
         #extract only a sampling of data to limit the number of data points
-        rep_qs = models.Repute.objects.filter(user=user).order_by('-id')
+        rep_qs = models.Repute.objects.filter(user=user,
+                                              language_code=get_language()
+                                             ).order_by('-reputed_at')
         #extract 300 points
         raw_graph_data = list()
         step = rep_length / float(sample_size)
@@ -1159,7 +1226,7 @@ def user_unsubscribe(request):
             #we use email too, in case the key changed
             user = models.User.objects.get(email=email)
         except models.User.DoesNotExist:
-            user = models.User.objects.get(key=key)
+            user = models.User.objects.get(askbot_profile__email_key=key)
         except models.User.DoesNotExist:
             result = 'bad_input'
         except models.User.MultipleObjectsReturned:
@@ -1258,17 +1325,17 @@ def user_custom_tab(request, user, context):
     """works only if `ASKBOT_CUSTOM_USER_PROFILE_TAB`
     setting in the ``settings.py`` is properly configured"""
     tab_settings = django_settings.ASKBOT_CUSTOM_USER_PROFILE_TAB
-    module_path = tab_settings['CONTENT_GENERATOR']
-    content_generator = load_module(module_path)
+    module_path = tab_settings['CONTEXT_GENERATOR']
+    context_generator = load_module(module_path)
 
     page_title = _('profile - %(section)s') % \
         {'section': tab_settings['NAME']}
 
     context.update({
-        'custom_tab_content': content_generator(request, user),
         'tab_name': tab_settings['SLUG'],
         'page_title': page_title
     })
+    context.update(context_generator(request, user))
     return render(request, 'user_profile/custom_tab.html', context)
 
 USER_VIEW_CALL_TABLE = {
@@ -1281,6 +1348,7 @@ USER_VIEW_CALL_TABLE = {
     'votes': user_votes,
     'email_subscriptions': user_email_subscriptions,
     'moderation': user_moderate,
+    'manage-account': manage_account
 }
 
 CUSTOM_TAB = getattr(django_settings, 'ASKBOT_CUSTOM_USER_PROFILE_TAB', None)

@@ -1,19 +1,28 @@
 import functools
 import re
 import sys
+from django.core.exceptions import ImproperlyConfigured
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
 from django.conf import settings as django_settings
 from django.template import Context
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _
-from lamson.routing import route, stateless
-from lamson.server import Relay
 from askbot.models import ReplyAddress, Group, Tag
 from askbot import mail
 from askbot.conf import settings as askbot_settings
 from askbot.utils.html import site_url
 from askbot.mail import DEBUG_EMAIL
+
+try:
+    from lamson.routing import route, stateless
+    from lamson.server import Relay
+except ImportError:
+    raise ImproperlyConfigured("""Askbot: to enable posting by email,
+install modules Lamson and django-lamson:
+pip install Lamson 
+pip install django-lamson
+""")
 
 #we might end up needing to use something like this
 #to distinguish the reply text from the quoted original message
@@ -160,7 +169,7 @@ def process_reply(func):
             error = _("You were replying to an email address\
              unknown to the system or you were replying from a different address from the one where you\
              received the notification.")
-        except Exception, e:
+        except Exception as e:
             import sys
             sys.stderr.write(unicode(e).encode('utf-8'))
             import traceback

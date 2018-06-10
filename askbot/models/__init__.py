@@ -20,9 +20,9 @@ from django.db.models import signals as django_signals
 from django.template import Context
 from django.template.loader import get_template
 from django.utils import timezone
-from django.utils.translation import string_concat
+from django.utils import translation
 from django.utils.translation import ugettext as _
-from django.utils.translation import ungettext, override
+from django.utils.translation import string_concat, override, ungettext
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
 from django.db import models
@@ -240,25 +240,34 @@ def user_get_avatar_url(self, size=48):
 
 
 #todo: find where this is used and replace with get_absolute_url
-def user_get_profile_url(self, profile_section=None):
+def user_get_profile_url(self, profile_section=None, language_code=None):
     """Returns the URL for this User's profile."""
+    cur_lang = get_language()
+
+    if language_code and cur_lang != language_code:
+        translation.activate(language_code)
+
     url = reverse(
             'user_profile',
             kwargs={'id': self.id, 'slug': slugify(self.username)}
         )
+
+    if language_code and cur_lang != language_code:
+        translation.activate(cur_lang)
+
     if profile_section:
         url += "?sort=" + profile_section
     return url
 
 
-def user_get_absolute_url(self):
-    return self.get_profile_url()
+def user_get_absolute_url(self, language_code=None):
+    return self.get_profile_url(language_code=language_code)
 
 
 def user_get_unsubscribe_url(self):
     url = reverse('user_unsubscribe')
     email_key = self.get_or_create_email_key()
-    return '{}?key={}&email={}'.format(url, self.email_key, self.email)
+    return '{0}?key={1}&email={2}'.format(url, self.email_key, self.email)
 
 
 def user_get_subscriptions_url(self):
@@ -274,19 +283,27 @@ def user_calculate_avatar_url(self, size=48):
     it will use avatar provided through that app
     """
     avatar_type = self.get_avatar_type()
+    size = int(size)
 
     if avatar_type == 'n':
         return self.get_default_avatar_url(size)
     elif avatar_type == 'a':
         from avatar.conf import settings as avatar_settings
         sizes = avatar_settings.AVATAR_AUTO_GENERATE_SIZES
-        if int(size) not in sizes:
+        if size not in sizes:
             logging.critical(
                 'add values %d to setting AVATAR_AUTO_GENERATE_SIZES',
-                int(size)
+                size
             )
 
-        from avatar.util import get_primary_avatar
+        try:
+            from avatar.utils import get_primary_avatar
+        except ImportError as error:
+            # If the updated version of django-avatar isn't installed
+            # Let's fall back
+            from avatar.util import get_primary_avatar
+            logging.warning("Using deprecated version of django-avatar")
+
         avatar = get_primary_avatar(self, size=size)
         if avatar:
             return avatar.avatar_url(size)
@@ -307,7 +324,6 @@ def user_init_avatar_urls(self):
     from avatar.conf import settings as avatar_settings
     sizes = avatar_settings.AVATAR_AUTO_GENERATE_SIZES
     for size in sizes:
-        size = str(size)
         if size not in self.avatar_urls:
             self.avatar_urls[size] = self.calculate_avatar_url(size)
 
@@ -1024,7 +1040,7 @@ def user_assert_can_see_deleted_post(self, post=None):
             admin_or_moderator_required=True,
             owner_can=True
         )
-    except django_exceptions.PermissionDenied, e:
+    except django_exceptions.PermissionDenied as e:
         #re-raise the same exception with a different message
         error_message = _(
             'This post has been deleted and can be seen only '
@@ -1037,7 +1053,7 @@ def user_assert_can_edit_deleted_post(self, post = None):
     assert(post.deleted == True)
     try:
         self.assert_can_see_deleted_post(post)
-    except django_exceptions.PermissionDenied, e:
+    except django_exceptions.PermissionDenied as e:
         error_message = _(
             'Sorry, only moderators, site administrators '
             'and post owners can edit deleted posts'
@@ -1158,21 +1174,13 @@ def user_assert_can_delete_question(self, question = None):
                         .exclude(author=self).exclude(points__lte=0).count()
 
         if answer_count > 0:
-            if answer_count > 1:
-                upvoted_answers_phrase = askbot_settings.WORDS_UPVOTED_ANSWERS
-            else:
-                upvoted_answers_phrase = askbot_settings.WORDS_UPVOTED_ANSWER
-
             msg = ungettext(
-                'Sorry, cannot %(delete_your_question)s since it '
-                'has an %(upvoted_answers)s posted by someone else',
-                'Sorry, cannot %(delete_your_question)s since it '
-                'has some %(upvoted_answers)s posted by other users',
+                'Sorry, cannot delete this since it '
+                'has an upvoted response posted by someone else',
+                'Sorry, cannot delete this since it '
+                'has some upvoted responses posted by someone else',
                 answer_count
-            ) % {
-                'delete_your_question': askbot_settings.WORDS_DELETE_YOUR_QUESTION,
-                'upvoted_answers': upvoted_answers_phrase
-            }
+            )
             raise django_exceptions.PermissionDenied(msg)
 
 
@@ -1779,15 +1787,15 @@ def user_delete_answer(
     logging.debug('updated answer count to %d' % answer.thread.answer_count)
 
     signals.after_post_removed.send(
-        sender = answer.__class__,
-        instance = answer,
-        deleted_by = self
+        sender=answer.__class__,
+        instance=answer,
+        deleted_by=self
     )
     award_badges_signal.send(None,
-                event = 'delete_post',
-                actor = self,
-                context_object = answer,
-                timestamp = timestamp
+                event='delete_post',
+                actor=self,
+                context_object=answer,
+                timestamp=timestamp
             )
 
 
@@ -1956,7 +1964,7 @@ def user_post_question(
                     self,
                     title=None,
                     body_text='',
-                    tags=None,
+                    tags=None, # string of space-separated tags
                     wiki=False,
                     is_anonymous=False,
                     is_private=False,
@@ -2328,8 +2336,6 @@ def user_post_answer(
         raise TypeError('question argument must be provided')
     if body_text is None:
         raise ValueError('Body text is required to post answer')
-    if timestamp is None:
-        timestamp = timezone.now()
 #    answer = Answer.objects.create_new(
 #        thread = question.thread,
 #        author = self,
@@ -2342,7 +2348,7 @@ def user_post_answer(
         thread=question.thread,
         author=self,
         text=body_text,
-        added_at=timestamp,
+        added_at=timestamp if timestamp else timezone.now(),
         email_notify=follow,
         wiki=wiki,
         is_private=is_private,
@@ -2356,7 +2362,8 @@ def user_post_answer(
     award_badges_signal.send(None,
         event = 'post_answer',
         actor = self,
-        context_object = answer_post
+        context_object = answer_post,
+        timestamp = timestamp
     )
     return answer_post
 
@@ -3200,7 +3207,7 @@ def user_get_flags_for_post(self, post):
 
 def user_create_email_key(self):
     email_key = generate_random_key()
-    User.objects.filter(id=self.pk).update(email_key=email_key)
+    UserProfile.objects.filter(auth_user_ptr=self).update(email_key=email_key)
     return email_key
 
 def user_get_or_create_email_key(self):
@@ -3215,14 +3222,14 @@ def user_update_response_counts(user):
     ACTIVITY_TYPES += (const.TYPE_ACTIVITY_MENTION,)
 
     user.new_response_count = ActivityAuditStatus.objects.filter(
-                                    user = user,
-                                    status = ActivityAuditStatus.STATUS_NEW,
-                                    activity__activity_type__in = ACTIVITY_TYPES
+                                    user=user,
+                                    status=ActivityAuditStatus.STATUS_NEW,
+                                    activity__activity_type__in=ACTIVITY_TYPES
                                 ).count()
     user.seen_response_count = ActivityAuditStatus.objects.filter(
-                                    user = user,
-                                    status = ActivityAuditStatus.STATUS_SEEN,
-                                    activity__activity_type__in = ACTIVITY_TYPES
+                                    user=user,
+                                    status=ActivityAuditStatus.STATUS_SEEN,
+                                    activity__activity_type__in=ACTIVITY_TYPES
                                 ).count()
     user.save()
 
@@ -3831,9 +3838,19 @@ def record_cancel_vote(instance, **kwargs):
     activity.save()
 
 
+def delete_post_activities(instance, **kwargs):
+    """Deletes items connected to instance via generic relations
+    upon removal of objects from the database"""
+    from askbot import tasks
+    ctype = ContentType.objects.get_for_model(instance)
+    aa = Activity.objects.filter(object_id=instance.pk, content_type=ctype)
+    aa.delete()
+    instance.delete_update_notifications(False) #don't keep activities
+
+
 #todo: weird that there is no record delete answer or comment
 #is this even necessary to keep track of?
-def record_delete_question(instance, deleted_by, **kwargs):
+def record_delete_post(instance, deleted_by, **kwargs):
     """
     when user deleted the question
     """
@@ -3851,8 +3868,10 @@ def record_delete_question(instance, deleted_by, **kwargs):
                     activity_type=activity_type,
                     question = instance.get_origin_post()
                 )
-    #no need to set receiving user here
     activity.save()
+
+    #keep activity records, but delete notifications
+    instance.delete_update_notifications(True)
 
 def record_flag_offensive(instance, mark_by, **kwargs):
     """places flagged post on the moderation queue"""
@@ -4039,7 +4058,7 @@ def notify_punished_users(user, **kwargs):
                     blocked_user_cannot=True,
                     suspended_user_cannot=True
                 )
-    except django_exceptions.PermissionDenied, e:
+    except django_exceptions.PermissionDenied as e:
         user.message_set.create(message = unicode(e))
 
 def post_anonymous_askbot_content(
@@ -4073,6 +4092,20 @@ def init_language_settings(user, **kwargs):
     lang = get_language()
     user.set_languages([lang,], primary=lang)
     user.askbot_profile.save()
+
+
+def make_invited_moderator(user, **kwargs):
+    """If user's email matches one of the values in "INVITED_MODERATORS"
+    setting, change status of this user to "moderator"
+    """
+    from askbot.models.user import (get_invited_moderators,
+                                    remove_email_from_invited_moderators)
+
+    mods = get_invited_moderators(include_registered=True)
+    invited_emails = [m.email for m in mods]
+    if user.email in invited_emails:
+        remove_email_from_invited_moderators(user.email)
+        user.set_status('m')
 
 
 def moderate_group_joining(sender, instance=None, created=False, **kwargs):
@@ -4121,9 +4154,14 @@ def group_membership_changed(**kwargs):
                     #so we don't add anything here
                     pass
                 else:
-                    #restore group membership here
-                    level = GROUP_MEMBERSHIP_LEVELS.get(gm_key)
-                    GroupMembership.objects.create(user=user, group=group, level=level)
+                    # Restore group membership.
+                    # Default level is FULL - to handle the case
+                    # when group is added via admin interface.
+                    level = GROUP_MEMBERSHIP_LEVELS.get(gm_key,
+                                                        GroupMembership.FULL)
+                    GroupMembership.objects.create(user=user,
+                                                   group=group,
+                                                   level=level)
 
             GROUP_MEMBERSHIP_LEVELS.pop(gm_key, None)
 
@@ -4263,9 +4301,15 @@ django_signals.post_delete.connect(
     dispatch_uid='record_cancel_vote_on_vote_delete'
 )
 
+django_signals.pre_delete.connect(
+    delete_post_activities,
+    sender=Post,
+    dispatch_uid='delete_post_activities_on_post_pre_delete'
+)
+
 #change this to real m2m_changed with Django1.2
 signals.after_post_removed.connect(
-    record_delete_question,
+    record_delete_post,
     sender=Post,
     dispatch_uid='record_delete_question_on_delete_post'
 )
@@ -4295,6 +4339,10 @@ signals.user_registered.connect(
     init_language_settings,
     dispatch_uid='update_language_settings_upon_registration'
 )
+signals.user_registered.connect(
+        make_invited_moderator,
+        dispatch_uid='make_invited_moderator'
+        )
 
 signals.user_logged_in.connect(
     complete_pending_tag_subscriptions,

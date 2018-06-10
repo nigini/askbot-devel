@@ -9,7 +9,7 @@ from django.conf import settings as django_settings
 EXTERNAL_KEYS = livesettings.ConfigurationGroup(
                     'EXTERNAL_KEYS',
                     _('Keys for external services'),
-                    super_group = EXTERNAL_SERVICES
+                    super_group=EXTERNAL_SERVICES
                 )
 
 settings.register(
@@ -39,8 +39,8 @@ settings.register(
             'Google Analytics</a> site, if you '
             'wish to use Google Analytics to monitor '
             'your site'
-        ) % {'url': 'http://www.google.com/intl/%s/analytics/' \
-                % django_settings.LANGUAGE_CODE }
+        ) % {'url': 'http://www.google.com/intl/%s/analytics/'
+                    % django_settings.LANGUAGE_CODE}
     )
 )
 
@@ -67,11 +67,10 @@ settings.register(
         'RECAPTCHA_SECRET',
         description=_('Recaptcha private key'),
         help_text=_(
-                        'Recaptcha is a tool that helps distinguish '
-                        'real people from annoying spam robots. '
-                        'Please get this and a public key at '
-                        'the <a href="%(url)s">%(url)s</a>'
-                    ) % {'url': const.DEPENDENCY_URLS['recaptcha']}
+            'Recaptcha is a tool that helps distinguish real people from '
+            'annoying spam robots. Please get this and a public key at '
+            'the <a href="%(url)s">%(url)s</a>'
+        ) % {'url': const.DEPENDENCY_URLS['recaptcha']}
     )
 )
 
@@ -99,12 +98,10 @@ settings.register(
         'FACEBOOK_KEY',
         description=_('Facebook public API key'),
         help_text=_(
-                     'Facebook API key and Facebook secret '
-                     'allow to use Facebook Connect login method '
-                     'at your site. Please obtain these keys '
-                     'at <a href="%(url)s">'
-                     'facebook create app</a> site'
-                    ) % {'url': const.DEPENDENCY_URLS['facebook-apps']}
+            'Facebook API key and Facebook secret allow to use Facebook '
+            'Connect login method at your site. Please obtain these keys '
+            'at <a href="%(url)s">facebook create app</a> site'
+        ) % {'url': const.DEPENDENCY_URLS['facebook-apps']}
     )
 )
 
@@ -143,8 +140,7 @@ settings.register(
         'MEDIAWIKI_KEY',
         description=_('MediaWiki consumer key'),
         help_text=_(
-            'Please register your forum at '
-            '%(mw_page)s page of your Wiki. '
+            'Please register your forum at %(mw_page)s page of your Wiki. '
             'Your wiki must have <a href="%(url)s">OAuth extension</a> '
             'installed '
             'installationSpecial:OAuthConsumerRegistration/propose '
@@ -164,7 +160,6 @@ settings.register(
         description=_('MediaWiki consumer secret'),
     )
 )
-
 
 settings.register(
     livesettings.StringValue(
@@ -205,5 +200,68 @@ settings.register(
         EXTERNAL_KEYS,
         'IDENTICA_SECRET',
         description=_('ident.ca consumer secret'),
+    )
+)
+
+settings.register(
+    livesettings.StringValue(
+        EXTERNAL_KEYS,
+        'YAMMER_KEY',
+        description=_('Yammer client id'),
+        help_text=_(
+            'Please register your client application at <a href="%(url)s">'
+            'yammer applications site</a>'
+        ) % {'url': const.DEPENDENCY_URLS['yammer-apps']},
+
+    )
+)
+
+settings.register(
+    livesettings.StringValue(
+        EXTERNAL_KEYS,
+        'YAMMER_SECRET',
+        description=_('Yammer secret key'),
+    )
+)
+
+settings.register(
+    livesettings.StringValue(
+        EXTERNAL_KEYS,
+        'WINDOWS_LIVE_KEY',
+        description=_('Windows Live client id'),
+        help_text=_(
+            'Please register your client application at <a href="%(url)s">'
+            'windows applications site</a>'
+        ) % {'url': const.DEPENDENCY_URLS['windows-live-apps']},
+
+    )
+)
+
+settings.register(
+    livesettings.StringValue(
+        EXTERNAL_KEYS,
+        'WINDOWS_LIVE_SECRET',
+        description=_('Windows Live secret key'),
+    )
+)
+
+settings.register(
+    livesettings.StringValue(
+        EXTERNAL_KEYS,
+        'MICROSOFT_AZURE_KEY',
+        description=_('Microsoft Azure client id'),
+        help_text=_(
+            'Please register your client application at <a href="%(url)s">'
+            'windows applications site</a>'
+        ) % {'url': const.DEPENDENCY_URLS['microsoft-azure-apps']},
+
+    )
+)
+
+settings.register(
+    livesettings.StringValue(
+        EXTERNAL_KEYS,
+        'MICROSOFT_AZURE_SECRET',
+        description=_('Microsoft Azure secret key'),
     )
 )

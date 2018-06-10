@@ -1,0 +1,4 @@
+factory_boy
+coverage
+dj-database-url
+django-lamson

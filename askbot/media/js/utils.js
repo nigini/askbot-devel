@@ -117,8 +117,6 @@ var copyAltToTitle = function (sel) {
 var runMathJax = function () {
     if (typeof MathJax != 'undefined') {
         MathJax.Hub.Queue(['Typeset', MathJax.Hub]);
-    } else {
-        console.log('Could not load mathjax');
     }
 };
 
@@ -142,6 +140,15 @@ var setHtmlTag = function (fromElement, toTagName) {
         fromElement.remove();
     }
     return newElement;
+};
+
+var stripTags = function(html) {
+    var div = $('<div style="margin-left: -999em; position: absolute;"></div>');
+    $(document.body).append(div);
+    div.html(html);
+    var text = div.text();
+    div.remove();
+    return text
 };
 
 var animateHashes = function () {
