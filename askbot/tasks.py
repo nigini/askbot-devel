@@ -18,11 +18,13 @@ That is the reason for having two types of methods here:
   objects and call the base methods
 """
 import logging
+import os
 import sys
 import traceback
 import uuid
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.management import call_command
 from django.template import Context
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _
@@ -52,6 +54,7 @@ from askbot.models.user import get_invited_moderators
 from askbot.models.badges import award_badges_signal
 from askbot import exceptions as askbot_exceptions
 from askbot.utils.twitter import Twitter
+from askbot.utils.akismet_utils import akismet_submit_spam
 
 
 logger = get_task_logger(__name__)
@@ -86,6 +89,38 @@ def tweet_new_post_task(post_id):
     if post.author.social_sharing_mode != const.SHARE_NOTHING:
         token = simplejson.loads(post.author.twitter_access_token)
         twitter.tweet(tweet_text, access_token=token)
+
+
+@task(ignore_result=True)
+def submit_spam_posts(post_ids):
+    posts = Post.objects.filter(pk__in=post_ids)
+    # todo: save user agent in the revisions, using a fixed record
+    # here because there is nothing better at the moment
+    user_agent = 'Mozilla/5.0 (Windows NT 6.0; Win64; x64)'
+    for post in posts:
+        text = post.get_text_content()
+        ip_addr = post.revisions.all()[0].ip_addr
+        akismet_submit_spam(text,
+                            ip_addr=ip_addr,
+                            user_agent=user_agent,
+                            author=post.author)
+
+
+@task(ignore_result=True)
+def export_user_data(user_id):
+    """Exports user data by ID"""
+    try:
+        user = User.objects.get(pk=user_id)
+        #1) delete older data exports
+        user.delete_exported_data()
+        #2) export new data
+        file_path = user.suggest_backup_file_path()
+        data_dir = os.path.dirname(file_path)
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir, 0700)
+        call_command('askbot_export_user_data', user_id=user_id, file_name=file_path)
+    except User.DoesNotExist:
+        return
 
 
 @task(ignore_result=True)
@@ -224,12 +259,12 @@ def record_question_visit(
         # get response notifications
         user.visit_question(question_post)
 
-    # 3) send award badges signal for any badges
-    # that are awarded for question views
-    award_badges_signal.send(
-        None, event='view_question', actor=user,
-        context_object=question_post)
-
+    #3) send award badges signal for any badges
+    #that are awarded for question views
+    award_badges_signal.send(None,
+                             event='view_question',
+                             actor=user,
+                             context_object=question_post)
 
 @task()
 def send_instant_notifications_about_activity_in_post(
