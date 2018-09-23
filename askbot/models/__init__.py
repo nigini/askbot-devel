@@ -8,6 +8,7 @@ import collections
 import datetime
 import hashlib
 import logging
+import os
 import re
 import urllib
 from functools import partial
@@ -38,7 +39,9 @@ from askbot.const import message_keys
 from askbot.conf import settings as askbot_settings
 from askbot.models.question import Thread
 from askbot.skins import utils as skin_utils
-from askbot.mail.messages import WelcomeEmail, WelcomeEmailRespondable
+from askbot.mail.messages import (WelcomeEmail,
+                                  WelcomeEmailRespondable,
+                                  AccountManagementRequest)
 from askbot.models.question import QuestionView, AnonymousQuestion
 from askbot.models.question import DraftQuestion
 from askbot.models.question import FavoriteQuestion
@@ -49,6 +52,7 @@ from askbot.models.user import EmailFeedSetting, ActivityAuditStatus, Activity
 from askbot.models.user import GroupMembership
 from askbot.models.user import Group
 from askbot.models.user import BulkTagSubscription
+from askbot.models.user import get_moderator_emails
 from askbot.models.post import Post, PostRevision
 from askbot.models.post import PostFlagReason, AnonymousAnswer
 from askbot.models.post import PostToGroup
@@ -69,7 +73,7 @@ from askbot.utils.functions import generate_random_key
 from askbot.utils.decorators import auto_now_timestamp
 from askbot.utils.decorators import reject_forbidden_phrases
 from askbot.utils.markup import URL_RE
-from askbot.utils.slug import slugify
+from askbot.utils.slug import slugify, ascii_slugify
 from askbot.utils.transaction import defer_celery_task
 from askbot.utils.translation import get_language
 from askbot.utils.html import replace_links_with_text
@@ -500,10 +504,28 @@ def user_can_create_tags(self):
     else:
         return True
 
+
+def user_can_terminate_account(self, user):
+    """True, if `self` can terminate account of `user`"""
+    perm = askbot_settings.WHO_CAN_TERMINATE_ACCOUNTS
+    is_admin = self.is_administrator()
+    if self.pk == user.pk:
+        if is_admin: #admin can't remove own account, as as safeguard
+            return False
+        return perm == 'users'
+    return is_admin
+
+
+def user_can_manage_account(self, user):
+    """True, if `self` can see the "manage account" page of `user`"""
+    return self.pk == user.pk or self.is_administrator()
+
+
 def user_can_have_strong_url(self):
     """True if user's homepage url can be
     followed by the search engine crawlers"""
     return (self.reputation >= askbot_settings.MIN_REP_TO_HAVE_STRONG_URL)
+
 
 def user_can_post_by_email(self):
     """True, if reply by email is enabled
@@ -1449,13 +1471,11 @@ def user_post_comment(
     comment.add_to_groups([self.get_personal_group()])
 
     parent_post.thread.reset_cached_data()
-    award_badges_signal.send(
-        None,
-        event = 'post_comment',
-        actor = self,
-        context_object = comment,
-        timestamp = timestamp
-    )
+    award_badges_signal.send(None,
+                             event='post_comment',
+                             actor=self,
+                             context_object=comment,
+                             timestamp=timestamp)
     return comment
 
 def user_post_object_description(
@@ -1666,11 +1686,10 @@ def user_retag_question(
     )
     question.thread.reset_cached_data()
     award_badges_signal.send(None,
-        event = 'retag_question',
-        actor = self,
-        context_object = question,
-        timestamp = timestamp
-    )
+                             event='retag_question',
+                             actor=self,
+                             context_object=question,
+                             timestamp=timestamp)
 
 
 def user_repost_comment_as_answer(self, comment):
@@ -1729,11 +1748,10 @@ def user_accept_best_answer(
 
     auth.onAnswerAccept(answer, self, timestamp=timestamp)
     award_badges_signal.send(None,
-        event = 'accept_best_answer',
-        actor = self,
-        context_object = answer,
-        timestamp = timestamp
-    )
+                             event='accept_best_answer',
+                             actor=self,
+                             context_object=answer,
+                             timestamp=timestamp)
 
 @auto_now_timestamp
 def user_unaccept_best_answer(
@@ -1792,11 +1810,10 @@ def user_delete_answer(
         deleted_by=self
     )
     award_badges_signal.send(None,
-                event='delete_post',
-                actor=self,
-                context_object=answer,
-                timestamp=timestamp
-            )
+                             event='delete_post',
+                             actor=self,
+                             context_object=answer,
+                             timestamp=timestamp)
 
 
 @auto_now_timestamp
@@ -1831,14 +1848,16 @@ def user_delete_question(
         deleted_by = self
     )
     award_badges_signal.send(None,
-                event = 'delete_post',
-                actor = self,
-                context_object = question,
-                timestamp = timestamp
-            )
+                             event='delete_post',
+                             actor=self,
+                             context_object=question,
+                             timestamp=timestamp)
 
 
-def user_delete_all_content_authored_by_user(self, author, timestamp=None):
+def user_delete_all_content_authored_by_user(self,
+                                             author,
+                                             timestamp=None,
+                                             submit_spam=False):
     """Deletes all questions, answers and comments made by the user"""
     count = 0
 
@@ -1846,12 +1865,14 @@ def user_delete_all_content_authored_by_user(self, author, timestamp=None):
     answers = Post.objects.get_answers().filter(author=author, deleted=False)
     timestamp = timestamp or timezone.now()
     count += answers.update(deleted_at=timestamp, deleted_by=self, deleted=True)
+    post_ids = list(answers.values_list('pk', flat=True))
 
     #delete questions
     questions = Post.objects.get_questions().filter(author=author, deleted=False)
     count += questions.count()
     for question in questions:
         self.delete_question(question=question, timestamp=timestamp)
+        post_ids.append(question.pk)
 
     threads = Thread.objects.filter(last_activity_by=author)
     for thread in threads:
@@ -1865,10 +1886,15 @@ def user_delete_all_content_authored_by_user(self, author, timestamp=None):
     for thread in threads:
         thread.reset_cached_data()
 
-    #delete comments
+    # delete comments
+    # todo: switch to marking comments as deleted
     comments = Post.objects.get_comments().filter(author=author)
     count += comments.count()
     comments.delete()
+
+    if submit_spam:
+        from askbot.tasks import submit_spam_posts
+        defer_celery_task(submit_spam_posts, args=(post_ids,))
 
     #delete all unused tags created by this user
     #tags = author.created_tags.all()
@@ -2018,11 +2044,10 @@ def user_post_question(
         self.toggle_favorite_question(question)
 
     award_badges_signal.send(None,
-        event='post_question',
-        actor=self,
-        context_object=question,
-        timestamp=timestamp
-    )
+                             event='post_question',
+                             actor=self,
+                             context_object=question,
+                             timestamp=timestamp)
 
     return question
 
@@ -2055,28 +2080,24 @@ def user_edit_comment(
     return revision
 
 def user_edit_post(self,
-                post=None,
-                body_text=None,
-                revision_comment=None,
-                timestamp=None,
-                by_email=False,
-                is_private=False,
-                suppress_email=False,
-                ip_addr=None
-            ):
-    """a simple method that edits post body
-    todo: unify it in the style of just a generic post
+                   post=None,
+                   body_text=None,
+                   revision_comment=None,
+                   timestamp=None,
+                   by_email=False,
+                   is_private=False,
+                   suppress_email=False,
+                   ip_addr=None):
+    """Edits post body.
+    Todo: unify it in the style of just a generic post
     this requires refactoring of underlying functions
-    because we cannot bypass the permissions checks set within
-    """
+    because we cannot bypass the permissions checks set within."""
     if post.post_type == 'comment':
-        return self.edit_comment(
-                comment_post=post,
-                body_text=body_text,
-                by_email=by_email,
-                suppress_email=suppress_email,
-                ip_addr=ip_addr
-            )
+        return self.edit_comment(comment_post=post,
+							body_text=body_text,
+							by_email=by_email,
+							suppress_email=suppress_email,
+							ip_addr=ip_addr)
     elif post.post_type == 'answer':
         return self.edit_answer(
             answer=post,
@@ -2120,7 +2141,7 @@ def user_edit_question(
                 title=None,
                 body_text=None,
                 revision_comment=None,
-                tags=None,
+                tags=None, # string of space-separated tags
                 wiki=False,
                 edit_anonymously=False,
                 is_private=False,
@@ -2152,11 +2173,9 @@ def user_edit_question(
     revision = question.apply_edit(
         edited_at=timestamp,
         edited_by=self,
-        title=title,
         text=body_text,
         #todo: summary name clash in question and question revision
         comment=revision_comment,
-        tags=tags,
         wiki=wiki,
         edit_anonymously=edit_anonymously,
         is_private=is_private,
@@ -2181,11 +2200,10 @@ def user_edit_question(
     question.thread.reset_cached_data()
 
     award_badges_signal.send(None,
-        event='edit_question',
-        actor=self,
-        context_object=question,
-        timestamp=timestamp
-    )
+                             event='edit_question',
+                             actor=self,
+                             context_object=question,
+                             timestamp=timestamp)
     return revision
 
 @auto_now_timestamp
@@ -2203,20 +2221,25 @@ def user_edit_answer(
                     suppress_email=False,
                     ip_addr=None,
                 ):
+
     if force == False:
         self.assert_can_edit_answer(answer)
 
-    revision = answer.apply_edit(
-        edited_at=timestamp,
-        edited_by=self,
-        text=body_text,
-        comment=revision_comment,
-        wiki=wiki,
-        is_private=is_private,
-        by_email=by_email,
-        suppress_email=suppress_email,
-        ip_addr=ip_addr,
-    )
+    if answer.is_private() != is_private:
+        if is_private:
+            answer.make_private(answer.author)
+        else:
+            answer.make_public()
+
+    revision = answer.apply_edit(edited_at=timestamp,
+                                 edited_by=self,
+                                 text=body_text,
+                                 comment=revision_comment,
+                                 wiki=wiki,
+                                 is_private=is_private,
+                                 by_email=by_email,
+                                 suppress_email=suppress_email,
+                                 ip_addr=ip_addr)
 
     answer.thread.set_last_activity_info(
         last_activity_at=timestamp,
@@ -2226,11 +2249,10 @@ def user_edit_answer(
     answer.thread.reset_cached_data()
 
     award_badges_signal.send(None,
-        event='edit_answer',
-        actor=self,
-        context_object=answer,
-        timestamp=timestamp
-    )
+                             event='edit_answer',
+                             actor=self,
+                             context_object=answer,
+                             timestamp=timestamp)
     return revision
 
 @auto_now_timestamp
@@ -2264,29 +2286,24 @@ def user_create_post_reject_reason(
     return reason
 
 @auto_now_timestamp
-def user_edit_post_reject_reason(
-    self, reason, title = None, details = None, timestamp = None
-):
+def user_edit_post_reject_reason(self, reason, title=None,
+                                 details=None, timestamp=None):
     reason.title = title
     reason.save()
-    return reason.details.apply_edit(
-        edited_by = self,
-        edited_at = timestamp,
-        text = details
-    )
+    return reason.details.apply_edit(edited_by=self,
+                                     edited_at=timestamp,
+                                     text=details)
 
 @reject_forbidden_phrases
-def user_post_answer(
-                    self,
-                    question=None,
-                    body_text=None,
-                    follow=False,
-                    wiki=False,
-                    is_private=False,
-                    timestamp=None,
-                    by_email=False,
-                    ip_addr=None,
-                ):
+def user_post_answer(self,
+                     question=None,
+                     body_text=None,
+                     follow=False,
+                     wiki=False,
+                     is_private=False,
+                     timestamp=None,
+                     by_email=False,
+                     ip_addr=None):
 
     #todo: move this to assertion - user_assert_can_post_answer
     if self.pk == question.author_id and not self.is_administrator():
@@ -2336,35 +2353,28 @@ def user_post_answer(
         raise TypeError('question argument must be provided')
     if body_text is None:
         raise ValueError('Body text is required to post answer')
-#    answer = Answer.objects.create_new(
-#        thread = question.thread,
-#        author = self,
-#        text = body_text,
-#        added_at = timestamp,
-#        email_notify = follow,
-#        wiki = wiki
-#    )
-    answer_post = Post.objects.create_new_answer(
-        thread=question.thread,
-        author=self,
-        text=body_text,
-        added_at=timestamp if timestamp else timezone.now(),
-        email_notify=follow,
-        wiki=wiki,
-        is_private=is_private,
-        by_email=by_email,
-        ip_addr=ip_addr,
-    )
+
+    if timestamp is None:
+        timestamp = timezone.now()
+
+    answer_post = Post.objects.create_new_answer(thread=question.thread,
+                                                 author=self,
+                                                 text=body_text,
+                                                 added_at=timestamp,
+                                                 email_notify=follow,
+                                                 wiki=wiki,
+                                                 is_private=is_private,
+                                                 by_email=by_email,
+                                                 ip_addr=ip_addr)
     #add to the answerer's group
     answer_post.add_to_groups([self.get_personal_group()])
 
     answer_post.thread.reset_cached_data()
     award_badges_signal.send(None,
-        event = 'post_answer',
-        actor = self,
-        context_object = answer_post,
-        timestamp = timestamp
-    )
+                             event='post_answer',
+                             actor=self,
+                             context_object=answer_post,
+                             timestamp=timestamp)
     return answer_post
 
 def user_visit_question(self, question = None, timestamp = None):
@@ -2819,6 +2829,71 @@ def user_can_make_group_private_posts(self):
     """simplest implementation: user belongs to at least one group"""
     return (self.get_primary_group() != None)
 
+
+def user_request_account_termination(self):
+    """Notifies admins about user account termination"""
+    msg_template = _('User %(username)s, id=%(id)s, %(email)s '
+                  'asked to terminate the account.')
+    admin_msg = msg_template % {'username': self.username,
+                             'id': self.pk,
+                             'email': self.email}
+    email = AccountManagementRequest({'message': admin_msg,
+                                      'username': self.username})
+    mod_emails = get_moderator_emails()
+    email.send(mod_emails)
+
+
+def user_get_data_export_dir(self):
+    """Returns directory path where exported data is to be held"""
+    return os.path.join(django_settings.ASKBOT_USER_DATA_EXPORT_DIR, str(self.pk))
+
+
+def user_get_backup_file_names(self):
+    """Returns list of user data backup file names"""
+    backup_dir = self.get_data_export_dir()
+    if os.path.exists(backup_dir):
+        return os.listdir(backup_dir)
+    return []
+
+
+def user_get_todays_backup_file_name(self):
+    """Returns todays backup file name or `None`"""
+    backup_dir = self.get_data_export_dir()
+    if not os.path.exists(backup_dir):
+        return None
+
+    today = datetime.date.today()
+    for name in self.get_backup_file_names():
+        if name.endswith('.zip'):
+            path = os.path.join(backup_dir, name)
+            file_mtime = os.path.getmtime(path)
+            file_date = datetime.date.fromtimestamp(file_mtime)
+            if file_date == today:
+                return name
+    return None
+
+
+def user_delete_exported_data(self):
+    """Deletes .zip files in the data export directory"""
+    data_dir = os.path.join(self.get_data_export_dir())
+    if not os.path.exists(data_dir):
+        return
+
+    for item in self.get_backup_file_names():
+        if item.endswith('.zip'):
+            os.remove(os.path.join(data_dir, item))
+
+
+def user_suggest_backup_file_path(self):
+    """Returns full path to the up-to date data export file"""
+    date_token = datetime.date.today().strftime('%d-%m-%Y')
+    file_slug = ascii_slugify(date_token + '-' + 
+                              self.username + '-' +
+                              askbot_settings.APP_SHORT_NAME)
+    file_name = file_slug + '.zip'
+    return os.path.join(self.get_data_export_dir(), file_name)
+
+
 def user_get_group_membership(self, group):
     """returns a group membership object or None
     if it is not there
@@ -2954,11 +3029,10 @@ def user_toggle_favorite_question(
         result = True
         question.thread.update_favorite_count()
         award_badges_signal.send(None,
-            event = 'select_favorite_question',
-            actor = self,
-            context_object = question,
-            timestamp = timestamp
-        )
+                                 event='select_favorite_question',
+                                 actor=self,
+                                 context_object=question,
+                                 timestamp=timestamp)
     return result
 
 VOTES_TO_EVENTS = {
@@ -3028,11 +3102,10 @@ def _process_vote(user, post, timestamp=None, cancel=False, vote_type=None):
     event = VOTES_TO_EVENTS.get((vote_type, post.post_type), None)
     if event:
         award_badges_signal.send(None,
-                    event = event,
-                    actor = user,
-                    context_object = post,
-                    timestamp = timestamp
-                )
+                                 event=event,
+                                 actor=user,
+                                 context_object=post,
+                                 timestamp=timestamp)
     return vote
 
 def user_fix_html_links(self, text):
@@ -3175,18 +3248,17 @@ def flag_post(
             user.assert_can_flag_offensive(post=post)
         auth.onFlaggedItem(post, user, timestamp=timestamp)
         award_badges_signal.send(None,
-            event = 'flag_post',
-            actor = user,
-            context_object = post,
-            timestamp = timestamp
-        )
+                                 event='flag_post',
+                                 actor=user,
+                                 context_object=post,
+                                 timestamp=timestamp)
 
 def user_get_flags(self):
     """return flag Activity query set
     for all flags set by te user"""
     return Activity.objects.filter(
-                        user = self,
-                        activity_type = const.TYPE_ACTIVITY_MARK_OFFENSIVE
+                        user=self,
+                        activity_type=const.TYPE_ACTIVITY_MARK_OFFENSIVE
                     )
 
 def user_get_flag_count_posted_today(self):
@@ -3389,6 +3461,8 @@ User.add_to_class(
 User.add_to_class('get_absolute_url', user_get_absolute_url)
 User.add_to_class('get_avatar_type', user_get_avatar_type)
 User.add_to_class('get_avatar_url', user_get_avatar_url)
+User.add_to_class('can_terminate_account', user_can_terminate_account)
+User.add_to_class('can_manage_account', user_can_manage_account)
 User.add_to_class('calculate_avatar_url', user_calculate_avatar_url)
 User.add_to_class('clear_avatar_urls', user_clear_avatar_urls)
 User.add_to_class('init_avatar_urls', user_init_avatar_urls)
@@ -3513,6 +3587,12 @@ User.add_to_class('approve_post_revision', user_approve_post_revision)
 User.add_to_class('needs_moderation', user_needs_moderation)
 User.add_to_class('notify_users', user_notify_users)
 User.add_to_class('is_read_only', user_is_read_only)
+User.add_to_class('get_data_export_dir', user_get_data_export_dir)
+User.add_to_class('delete_exported_data', user_delete_exported_data)
+User.add_to_class('suggest_backup_file_path', user_suggest_backup_file_path)
+User.add_to_class('get_backup_file_names', user_get_backup_file_names)
+User.add_to_class('get_todays_backup_file_name', user_get_todays_backup_file_name)
+User.add_to_class('request_account_termination', user_request_account_termination)
 
 #assertions
 User.add_to_class('assert_can_vote_for_post', user_assert_can_vote_for_post)
@@ -3754,11 +3834,10 @@ def record_user_visit(user, timestamp, **kwargs):
         user.consecutive_days_visit_count += 1
         consecutive_days = user.consecutive_days_visit_count
         award_badges_signal.send(None,
-            event = 'site_visit',
-            actor = user,
-            context_object = user,
-            timestamp = timestamp
-        )
+                                 event='site_visit',
+                                 actor=user,
+                                 context_object=user,
+                                 timestamp=timestamp)
     #somehow it saves on the query as compared to user.save()
     update_data = {
         'last_seen': timestamp,
@@ -3910,11 +3989,10 @@ def record_update_tags(thread, tags, user, timestamp, **kwargs):
     """
     for tag in tags:
         award_badges_signal.send(None,
-            event = 'update_tag',
-            actor = user,
-            context_object = tag,
-            timestamp = timestamp
-        )
+                                 event='update_tag',
+                                 actor=user,
+                                 context_object=tag,
+                                 timestamp=timestamp)
 
     question = thread._question_post()
 
