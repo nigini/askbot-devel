@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import cgi
 import functools
 import httplib
@@ -24,6 +25,7 @@ from django.utils.translation import ugettext as _
 from django.core.exceptions import ImproperlyConfigured
 from askbot.deps.django_authopenid import providers
 from askbot.deps.django_authopenid.exceptions import OAuthError
+from functools import reduce
 
 try:
     from hashlib import md5
@@ -39,7 +41,7 @@ except:
     from yadis import xri
 
 import time, base64, hmac, hashlib, operator, logging
-from models import Association, Nonce
+from .models import Association, Nonce
 
 __all__ = ['OpenID', 'DjangoOpenIDStore', 'from_openid_response']
 

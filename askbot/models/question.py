@@ -1739,7 +1739,7 @@ class Thread(models.Model):
         return html
 
     def summary_html_cached(self):
-        return cache.cache.has_key(self.get_summary_cache_key())
+        return self.get_summary_cache_key() in cache.cache
 
 
 class QuestionView(models.Model):

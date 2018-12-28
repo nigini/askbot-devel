@@ -133,7 +133,7 @@ if hasattr(random, 'SystemRandom'):
     randrange = random.SystemRandom().randrange
 else:
     randrange = random.randrange
-_MAX_CSRF_KEY = 18446744073709551616L     # 2 << 63
+_MAX_CSRF_KEY = 18446744073709551616     # 2 << 63
 def _get_failure_view():
     """
     Returns the view to be used for CSRF rejections

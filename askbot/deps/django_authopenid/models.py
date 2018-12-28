@@ -73,7 +73,7 @@ class UserPasswordQueueManager(models.Manager):
         # Use SECRET_KEY as added salt.
         while 1:
             confirm_key = hashlib.md5("%s%s%s%s" % (
-                random.randint(0, sys.maxint - 1), os.getpid(),
+                random.randint(0, sys.maxsize - 1), os.getpid(),
                 time.time(), settings.SECRET_KEY)).hexdigest()
             try:
                 self.get(confirm_key=confirm_key)

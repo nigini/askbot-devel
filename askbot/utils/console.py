@@ -262,7 +262,7 @@ class ProgressBar(object):
     def next(self):
 
         try:
-            result = self.iterable.next()
+            result = next(self.iterable)
         except StopIteration:
             if self.length > 0:
                 self.finish_progress_bar()

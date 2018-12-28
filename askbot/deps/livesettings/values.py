@@ -3,6 +3,7 @@
 
 http://code.google.com/p/django-values/
 """
+from __future__ import absolute_import
 from decimal import Decimal
 from collections import OrderedDict
 from django import forms
@@ -24,7 +25,7 @@ from askbot.deps.livesettings.widgets import ImageInput
 from askbot.utils.functions import format_setting_name
 import datetime
 import logging
-import signals
+from . import signals
 import os
 
 __all__ = ['BASE_GROUP', 'BASE_SUPER_GROUP', 'ConfigurationGroup', 'Value', 'BooleanValue',
@@ -264,7 +265,7 @@ class Value(object):
             self.requires = group.requires
             self.requires_value = group.requires_value
 
-        if kwargs.has_key('default'):
+        if 'default' in kwargs:
             self.default = kwargs.pop('default')
             self.use_default = True
         else:
@@ -456,7 +457,7 @@ class Value(object):
                     if overrides:
                         # maybe override the default
                         grp = overrides.get(self.group.key, {})
-                        if grp.has_key(key):
+                        if key in grp:
                             val = grp[self.key]
                 else:
                     val = NOTSET
@@ -470,7 +471,7 @@ class Value(object):
                 global _WARN
                 log.error(e)
                 if str(e).find("configuration_setting") > -1:
-                    if not _WARN.has_key('configuration_setting'):
+                    if 'configuration_setting' not in _WARN:
                         log.warn('Error loading setting %s.%s from table, OK if you are in syncdb', self.group.key, key)
                         _WARN['configuration_setting'] = True
 
@@ -494,7 +495,7 @@ class Value(object):
             new_value = self.to_python(value)
             if current_value != new_value:
                 if self.update_callback:
-                    new_value = apply(self.update_callback, (current_value, new_value))
+                    new_value = self.update_callback(*(current_value, new_value))
 
                 db_value = self.get_db_prep_save(new_value)
 

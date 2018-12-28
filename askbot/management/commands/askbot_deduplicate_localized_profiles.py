@@ -1,3 +1,4 @@
+from __future__ import print_function
 from django.core.management.base import BaseCommand
 from django.db import connection
 from askbot.models import LocalizedUserProfile
@@ -26,4 +27,4 @@ class Command(BaseCommand):
                 item.delete()
                 deleted_count += 1
 
-        print 'deleted {} items'.format(deleted_count)
+        print('deleted {} items'.format(deleted_count))

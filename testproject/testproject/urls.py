@@ -1,6 +1,7 @@
 """
 main url configuration file for the askbot site
 """
+from __future__ import absolute_import
 from django.conf import settings
 try:
     from django.conf.urls import handler404
