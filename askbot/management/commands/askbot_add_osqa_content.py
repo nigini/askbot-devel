@@ -1,4 +1,7 @@
 from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 from askbot.deps.django_authopenid.models import UserAssociation
 from askbot.management.commands.base import BaseImportXMLCommand
 from askbot.models import Award
@@ -18,7 +21,7 @@ from django.conf import settings as django_settings
 from django.utils.http import urlquote  as django_urlquote
 from django.utils import timezone
 from django.template.defaultfilters import slugify
-from HTMLParser import HTMLParser
+from html.parser import HTMLParser
 
 def decode_datetime(data):
     """Decodes formats:

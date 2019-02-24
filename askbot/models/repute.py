@@ -1,3 +1,4 @@
+from builtins import object
 import datetime
 
 from django.contrib.contenttypes.models import ContentType
@@ -51,7 +52,7 @@ class Vote(models.Model):
 
     objects = VoteManager()
 
-    class Meta:
+    class Meta(object):
         unique_together = ('user', 'voted_post')
         app_label = 'askbot'
         db_table = u'vote'
@@ -135,7 +136,7 @@ class BadgeData(models.Model):
         # TODO: rename "type" -> "level" in this model
         return self._get_meta_data().get_level_display()
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
         ordering = ('display_order', 'slug')
         verbose_name = _("badge data")
@@ -163,7 +164,7 @@ class Award(models.Model):
                                                         self.badge.get_name(),
                                                         self.awarded_at)
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
         db_table = u'award'
         verbose_name = _("award")
@@ -223,7 +224,7 @@ class Repute(models.Model):
         return u'[%s]\' reputation changed at %s' % (self.user.username,
                                                      self.reputed_at)
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
         db_table = u'repute'
         verbose_name = _("repute")

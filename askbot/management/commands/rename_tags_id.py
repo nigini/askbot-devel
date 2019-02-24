@@ -6,6 +6,7 @@ both "from" and "to" tags are identified by id
 also, corresponding questions are retagged
 """
 from __future__ import print_function
+from builtins import str
 import re
 import sys
 from django.conf import settings as django_settings

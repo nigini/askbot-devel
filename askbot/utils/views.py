@@ -1,3 +1,4 @@
+from builtins import object
 from django.http import HttpResponse
 from django.http import HttpResponseNotAllowed
 from django.http import HttpResponseForbidden

@@ -1,4 +1,5 @@
-import hotshot
+from builtins import str
+#import hotshot
 import time
 import os
 import functools
@@ -92,13 +93,13 @@ def ajax_only(view_func):
                 if len(e.messages) > 1:
                     message = u'<ul>' + \
                         u''.join(
-                            map(lambda v: u'<li>%s</li>' % v, e.messages)
+                            [u'<li>%s</li>' % v for v in e.messages]
                         ) + \
                         u'</ul>'
                 else:
                     message = e.messages[0]
             else:
-                message = unicode(e)
+                message = str(e)
             if message == '':
                 message = _('Oops, apologies - there was some error')
             logging.debug(message)
@@ -128,7 +129,7 @@ def check_authorization_to_post(func_or_message):
             if request.user.is_anonymous():
                 #todo: expand for handling ajax responses
                 if askbot_settings.ALLOW_POSTING_BEFORE_LOGGING_IN == False:
-                    request.user.message_set.create(message=unicode(message))
+                    request.user.message_set.create(message=str(message))
                     params = 'next=%s' % request.path
                     return HttpResponseRedirect(url_utils.get_login_url() + '?' + params)
             return view_func(request, *args, **kwargs)
@@ -144,42 +145,42 @@ try:
 except:
     PROFILE_LOG_BASE = "/tmp"
 
-def profile(log_file):
-    """Profile some callable.
-
-    This decorator uses the hotshot profiler to profile some callable (like
-    a view function or method) and dumps the profile data somewhere sensible
-    for later processing and examination.
-
-    It takes one argument, the profile log name. If it's a relative path, it
-    places it under the PROFILE_LOG_BASE. It also inserts a time stamp into the
-    file name, such that 'my_view.prof' become 'my_view-20100211T170321.prof',
-    where the time stamp is in UTC. This makes it easy to run and compare
-    multiple trials.
-
-    http://code.djangoproject.com/wiki/ProfilingDjango
-    """
-
-    if not os.path.isabs(log_file):
-        log_file = os.path.join(PROFILE_LOG_BASE, log_file)
-
-    def _outer(f):
-        def _inner(*args, **kwargs):
-            # Add a timestamp to the profile output when the callable
-            # is actually called.
-            (base, ext) = os.path.splitext(log_file)
-            base = base + "-" + time.strftime("%Y%m%dT%H%M%S", time.gmtime())
-            final_log_file = base + ext
-
-            prof = hotshot.Profile(final_log_file)
-            try:
-                ret = prof.runcall(f, *args, **kwargs)
-            finally:
-                prof.close()
-            return ret
-
-        return _inner
-    return _outer
+# def profile(log_file):
+#     """Profile some callable.
+#
+#     This decorator uses the hotshot profiler to profile some callable (like
+#     a view function or method) and dumps the profile data somewhere sensible
+#     for later processing and examination.
+#
+#     It takes one argument, the profile log name. If it's a relative path, it
+#     places it under the PROFILE_LOG_BASE. It also inserts a time stamp into the
+#     file name, such that 'my_view.prof' become 'my_view-20100211T170321.prof',
+#     where the time stamp is in UTC. This makes it easy to run and compare
+#     multiple trials.
+#
+#     http://code.djangoproject.com/wiki/ProfilingDjango
+#     """
+#
+#     if not os.path.isabs(log_file):
+#         log_file = os.path.join(PROFILE_LOG_BASE, log_file)
+#
+#     def _outer(f):
+#         def _inner(*args, **kwargs):
+#             # Add a timestamp to the profile output when the callable
+#             # is actually called.
+#             (base, ext) = os.path.splitext(log_file)
+#             base = base + "-" + time.strftime("%Y%m%dT%H%M%S", time.gmtime())
+#             final_log_file = base + ext
+#
+#             prof = hotshot.Profile(final_log_file)
+#             try:
+#                 ret = prof.runcall(f, *args, **kwargs)
+#             finally:
+#                 prof.close()
+#             return ret
+#
+#         return _inner
+#     return _outer
 
 
 def moderators_only(view_func):

@@ -8,6 +8,8 @@ in order to render messages within the page.
 Notice that :mod:`urls` module decorates all these functions
 and turns them into complete views
 """
+from future import standard_library
+standard_library.install_aliases()
 import copy
 from django.template.loader import get_template
 from django.template import Context
@@ -41,7 +43,7 @@ class NewThread(PjaxView):
         content should be cached in the client'
         """
         usernames = request.POST['to_usernames']
-        usernames = map(lambda v: v.strip(), usernames.split(','))
+        usernames = [v.strip() for v in usernames.split(',')]
         users = User.objects.filter(username__in=usernames)
 
         missing = copy.copy(usernames)

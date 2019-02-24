@@ -8,6 +8,7 @@ Add to the MIDDLEWARE_CLASSES:
     'askbot.middleware.remote_ip.SetRemoteIPFromXForwardedFor',
 """
 
+from builtins import object
 class SetRemoteIPFromXForwardedFor(object):
     def process_request(self, request):
         try:

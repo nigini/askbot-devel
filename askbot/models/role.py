@@ -1,6 +1,7 @@
 """Role will be the record of per-user roles/permission
 assignments. Currently roles are coupled
 with the reputation system, but should be separated."""
+from builtins import object
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -35,7 +36,7 @@ class Role(models.Model):
     user = models.ForeignKey(User, related_name='askbot_roles')
     role = models.CharField(max_length=64, choices=ROLE_CHOICES)
 
-    class Meta: #pylint: disable=missing-docstring, old-style-class, no-init, too-few-public-methods
+    class Meta(object): #pylint: disable=missing-docstring, old-style-class, no-init, too-few-public-methods
         app_label = 'askbot'
         db_table = 'askbot_role'
         unique_together = ('user', 'role')

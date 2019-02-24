@@ -17,6 +17,7 @@ That is the reason for having two types of methods here:
 * celery tasks - shells that reconstitute the necessary ORM
   objects and call the base methods
 """
+from builtins import str
 import logging
 import os
 import sys
@@ -225,7 +226,7 @@ def record_post_update_celery_task(
             timestamp=timestamp,
             diff=diff)
     except Exception:
-        logger.error(unicode(traceback.format_exc()).encode('utf-8'))
+        logger.error(str(traceback.format_exc()).encode('utf-8'))
 
 
 @task(ignore_result=True)

@@ -1,4 +1,9 @@
 """Utility functions"""
+from __future__ import division
+from builtins import str
+from builtins import range
+from past.builtins import basestring
+from past.utils import old_div
 import datetime
 import os
 import re
@@ -41,7 +46,7 @@ def timedelta_total_seconds(time_delta):
         return time_delta.total_seconds()
     from future import __division__
     # pylint: disable=line-too-long
-    return (time_delta.microseconds + (time_delta.seconds + time_delta.days * 24 * 3600) * 10**6) / 10**6
+    return old_div((time_delta.microseconds + (time_delta.seconds + time_delta.days * 24 * 3600) * 10**6), 10**6)
 
 
 def get_epoch_str(date_time):
@@ -150,8 +155,8 @@ def diff_date(date, use_on_prefix=False):
     now = datetime.datetime.now()#datetime(*time.localtime()[0:6])#???
     diff = now - date
     days = diff.days
-    hours = int(diff.seconds/3600)
-    minutes = int(diff.seconds/60)
+    hours = int(old_div(diff.seconds,3600))
+    minutes = int(old_div(diff.seconds,60))
 
     if days > 2:
         if date.year == now.year:
@@ -191,7 +196,7 @@ def setup_paginator(context):
     if context["is_paginated"]:
         # initialize variables
         in_leading_range = in_trailing_range = False
-        pages_outside_leading_range = pages_outside_trailing_range = range(0)
+        pages_outside_leading_range = pages_outside_trailing_range = list(range(0))
 
         if context["pages"] <= LEADING_PAGE_RANGE_DISPLAYED:
             in_leading_range = in_trailing_range = True

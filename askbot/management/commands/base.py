@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import str
 from askbot.models import Message
 from askbot.models import User
 from askbot.models import ImportedObjectInfo

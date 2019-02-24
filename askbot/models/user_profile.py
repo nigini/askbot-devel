@@ -1,3 +1,4 @@
+from builtins import object
 from askbot import const
 from askbot.models.fields import LanguageCodeField
 from django.conf import settings as django_settings
@@ -177,7 +178,7 @@ class UserProfile(models.Model):
                                 choices=const.SOCIAL_SHARING_MODE_CHOICES
                             )
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
 
     def get_cache_key(self):
@@ -203,7 +204,7 @@ class LocalizedUserProfile(models.Model):
                             help_text='True, if user selects this language'
                         )
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
 
     def get_cache_key(self):

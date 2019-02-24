@@ -2,6 +2,7 @@
 an askbot instance, but may be used in some cases.
 Data in these models can be erased without loss of function.
 """
+from builtins import object
 from django.db import models
 from picklefield.fields import PickledObjectField
 
@@ -10,7 +11,7 @@ class ImportRun(models.Model):
     command = models.TextField(default='')
     timestamp = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
 
 class ImportedObjectInfo(models.Model):
@@ -28,5 +29,5 @@ class ImportedObjectInfo(models.Model):
     run = models.ForeignKey(ImportRun)
     extra_info = PickledObjectField(help_text='to hold dictionary for various data')
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'

@@ -1,3 +1,4 @@
+from builtins import object
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -52,7 +53,7 @@ class AnonymousContent(models.Model):
     author = models.ForeignKey(User,null=True)
     text = models.TextField()
 
-    class Meta:
+    class Meta(object):
         abstract = True
         app_label = 'askbot'
 
@@ -60,7 +61,7 @@ class DraftContent(models.Model):
     """Base for autosaved DraftQuestion and DraftAnswer"""
     text = models.TextField(null=True)
 
-    class Meta:
+    class Meta(object):
         abstract = True
         app_label = 'askbot'
 

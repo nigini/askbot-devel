@@ -1,4 +1,5 @@
 """a module for patching django"""
+from builtins import object
 import imp
 import hashlib
 import os

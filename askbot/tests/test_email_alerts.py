@@ -1117,16 +1117,16 @@ class AbsolutizeUrlsInEmailsTests(utils.AskbotTestCase):
                 continue
             url_bits[link.attrs['href'][:4]] = 1
 
-        self.assertEqual(len(url_bits.keys()), 1)
-        self.assertEqual(url_bits.keys()[0], 'http')
+        self.assertEqual(len(list(url_bits.keys())), 1)
+        self.assertEqual(list(url_bits.keys())[0], 'http')
 
         images = soup.find_all('img')
         url_bits = {}
         for img in images:
             url_bits[img.attrs['src'][:4]] = 1
 
-        self.assertEqual(len(url_bits.keys()), 1)
-        self.assertEqual(url_bits.keys()[0], 'http')
+        self.assertEqual(len(list(url_bits.keys())), 1)
+        self.assertEqual(list(url_bits.keys())[0], 'http')
 
 
 class MailMessagesTests(utils.AskbotTestCase):

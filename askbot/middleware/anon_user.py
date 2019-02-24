@@ -8,6 +8,7 @@ added to the :class:`AnonymousUser` so that user could be pickled.
 
 Secondly, it sends greeting message to anonymous users.
 """
+from builtins import object
 from django.conf import settings as django_settings
 from askbot.user_messages import create_message, get_and_delete_messages
 from askbot.conf import settings as askbot_settings

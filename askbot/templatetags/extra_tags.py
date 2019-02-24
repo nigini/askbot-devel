@@ -1,3 +1,5 @@
+from __future__ import division
+from past.utils import old_div
 import math
 from django import template
 from django.template import RequestContext
@@ -78,7 +80,7 @@ def tag_font_size(max_size, min_size, current_size):
     if current_size == 0:
         current_size = 1
     try:
-        weight = (math.log10(current_size) - math.log10(min_size)) / (math.log10(max_size) - math.log10(min_size))
+        weight = old_div((math.log10(current_size) - math.log10(min_size)), (math.log10(max_size) - math.log10(min_size)))
     except Exception:
         weight = 0
 

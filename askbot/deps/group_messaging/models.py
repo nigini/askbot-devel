@@ -1,5 +1,8 @@
 """models for the ``group_messaging`` app
 """
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 from askbot.mail import send_mail #todo: remove dependency?
 from askbot.mail.messages import GroupMessagingEmailAlert
 from django.conf import settings as django_settings
@@ -17,7 +20,7 @@ from askbot.deps.group_messaging.signals import response_created
 from askbot.deps.group_messaging.signals import thread_created
 import copy
 import datetime
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 MAX_HEADLINE_LENGTH = 80
 MAX_SUBJECT_LINE_LENGTH = 30
@@ -75,7 +78,7 @@ class LastVisitTime(models.Model):
     message = models.ForeignKey('Message')
     at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
+    class Meta(object):
         unique_together = ('user', 'message')
         app_label = 'group_messaging'
 
@@ -103,7 +106,7 @@ class SenderList(models.Model):
     senders = models.ManyToManyField(User)
     objects = SenderListManager()
 
-    class Meta:
+    class Meta(object):
         app_label = 'group_messaging'
 
 
@@ -131,7 +134,7 @@ class MessageMemo(models.Model):
             choices=STATUS_CHOICES, default=SEEN
         )
 
-    class Meta:
+    class Meta(object):
         unique_together = ('user', 'message')
         app_label = 'group_messaging'
 
@@ -363,7 +366,7 @@ class Message(models.Model):
                     )
         params = copy.copy(settings['BASE_URL_PARAMS'])
         params['thread_id'] = self.id
-        url = url_getter(user) + '?' + urllib.urlencode(params)
+        url = url_getter(user) + '?' + urllib.parse.urlencode(params)
         #if include_domain_name: #don't need this b/c
         #    site = Site.objects.get_current()
         #    url = 'http://' + site.domain + url
@@ -510,7 +513,7 @@ class Message(models.Model):
             inbox_counter.decrement()
             inbox_counter.save()
 
-    class Meta:
+    class Meta(object):
         app_label = 'group_messaging'
 
 
@@ -549,7 +552,7 @@ class UnreadInboxCounter(models.Model):
             if thread.is_unread_by_user(self.user):
                 self.increment()
 
-    class Meta:
+    class Meta(object):
         app_label = 'group_messaging'
 
 

@@ -1,5 +1,7 @@
 """Utilities for working with lists and sequences."""
 
+from builtins import range
+from past.builtins import basestring
 class LazyList(list):
     def __init__(self, get_data):
         self.data = get_data
@@ -34,7 +36,7 @@ def batch_size(items, size):
     >>> batch_size(l, 5)
     [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]
     """
-    return [items[i:i+size] for i in xrange(0, len(items), size)]
+    return [items[i:i+size] for i in range(0, len(items), size)]
 
 def batches(items, number):
     """
@@ -86,5 +88,5 @@ def batches(items, number):
             return [[item] for item in items]
         else:
             # mod now tells you how many lists of 2 you can fit in
-            return ([items[i*2:(i*2)+2] for i in xrange(0, mod)] +
+            return ([items[i*2:(i*2)+2] for i in range(0, mod)] +
                     [[item] for item in items[mod*2:]])

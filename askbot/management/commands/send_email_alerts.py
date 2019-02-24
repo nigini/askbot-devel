@@ -51,7 +51,7 @@ def extend_question_list(
     """
     if src is None:#is not QuerySet
         return #will not do anything if subscription of this type is not used
-    if limit and len(dst.keys()) >= askbot_settings.MAX_ALERTS_PER_EMAIL:
+    if limit and len(list(dst.keys())) >= askbot_settings.MAX_ALERTS_PER_EMAIL:
         return
     if cutoff_time is None:
         if hasattr(src, 'cutoff_time'):
@@ -356,7 +356,7 @@ class Command(NoArgsCommand):
         #for each question, whether it needs to be included or not
         #into the report
 
-        for q, meta_data in q_list.items():
+        for q, meta_data in list(q_list.items()):
             #this loop edits meta_data for each question
             #so that user will receive counts on new edits new answers, etc
             #and marks questions that need to be skipped
@@ -456,26 +456,26 @@ class Command(NoArgsCommand):
         #todo: q_list is a dictionary, not a list
         q_list = self.get_updated_questions_for_user(user)
 
-        if len(q_list.keys()) == 0:
+        if len(list(q_list.keys())) == 0:
             return
 
         num_q = 0
 
-        for question, meta_data in q_list.items():
+        for question, meta_data in list(q_list.items()):
             if meta_data['skip']:
                 del q_list[question]
             else:
                 num_q += 1
         if num_q > 0:
-            threads = Thread.objects.filter(id__in=[qq.thread_id for qq in q_list.keys()])
+            threads = Thread.objects.filter(id__in=[qq.thread_id for qq in list(q_list.keys())])
             tag_summary = Thread.objects.get_tag_summary_from_threads(threads)
 
-            question_count = len(q_list.keys())
+            question_count = len(list(q_list.keys()))
 
             items_added = 0
             items_unreported = 0
             questions_data = list()
-            for q, meta_data in q_list.items():
+            for q, meta_data in list(q_list.items()):
                 act_list = []
                 if meta_data['skip']:
                     continue

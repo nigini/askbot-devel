@@ -4,6 +4,7 @@
 
 This module contains views that allow adding, editing, and deleting main textual content.
 """
+from builtins import str
 import logging
 import os
 import os.path
@@ -98,9 +99,9 @@ def upload(request):#ajax upload file to a question or answer
             raise exceptions.PermissionDenied(msg)
 
     except exceptions.PermissionDenied as e:
-        error = unicode(e)
+        error = str(e)
     except Exception as e:
-        logging.critical(unicode(e))
+        logging.critical(str(e))
         error = _('Error uploading file. Please contact the site administrator. Thank you.')
 
     if error == '':
@@ -262,7 +263,7 @@ def ask(request):#view used to ask a new question
                     )
                     return HttpResponseRedirect(question.get_absolute_url())
                 except exceptions.PermissionDenied as e:
-                    request.user.message_set.create(message = unicode(e))
+                    request.user.message_set.create(message = str(e))
                     return HttpResponseRedirect(reverse('index'))
 
             else:
@@ -386,13 +387,13 @@ def retag_question(request, id):
     except exceptions.PermissionDenied as e:
         if request.is_ajax():
             response_data = {
-                'message': unicode(e),
+                'message': str(e),
                 'success': False
             }
             data = simplejson.dumps(response_data)
             return HttpResponse(data, content_type="application/json")
         else:
-            request.user.message_set.create(message = unicode(e))
+            request.user.message_set.create(message = str(e))
             return HttpResponseRedirect(question.get_absolute_url())
 
 @login_required
@@ -514,7 +515,7 @@ def edit_question(request, id):
         return render(request, 'question_edit.html', data)
 
     except exceptions.PermissionDenied as e:
-        request.user.message_set.create(message = unicode(e))
+        request.user.message_set.create(message = str(e))
         return HttpResponseRedirect(question.get_absolute_url())
 
 @login_required
@@ -618,7 +619,7 @@ def edit_answer(request, id):
         return render(request, 'answer_edit.html', data)
 
     except exceptions.PermissionDenied as e:
-        request.user.message_set.create(message = unicode(e))
+        request.user.message_set.create(message = str(e))
         return HttpResponseRedirect(answer.get_absolute_url())
 
 #todo: rename this function to post_new_answer
@@ -680,11 +681,11 @@ def answer(request, id, form_class=forms.AnswerForm):#process a new answer
 
                     return HttpResponseRedirect(answer.get_absolute_url())
                 except askbot_exceptions.AnswerAlreadyGiven as e:
-                    request.user.message_set.create(message = unicode(e))
+                    request.user.message_set.create(message = str(e))
                     answer = question.thread.get_answers_by_user(user)[0]
                     return HttpResponseRedirect(answer.get_absolute_url())
                 except exceptions.PermissionDenied as e:
-                    request.user.message_set.create(message = unicode(e))
+                    request.user.message_set.create(message = str(e))
             else:
                 if request.session.session_key is None:
                     return HttpResponseForbidden()
@@ -821,7 +822,7 @@ def post_comments(request):#generic ajax handler to load comments to an object
             )
             response = __generate_comments_json(post, user, avatar_size)
         except exceptions.PermissionDenied as e:
-            response = HttpResponseForbidden(unicode(e), content_type="application/json")
+            response = HttpResponseForbidden(str(e), content_type="application/json")
 
     return response
 
@@ -925,7 +926,7 @@ def delete_comment(request):
                 )
     except exceptions.PermissionDenied as e:
         return HttpResponseForbidden(
-                    unicode(e),
+                    str(e),
                     content_type='application/json'
                 )
 

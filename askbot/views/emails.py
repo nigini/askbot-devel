@@ -1,3 +1,4 @@
+from builtins import str
 from askbot.conf import settings as askbot_settings
 from askbot.mail import messages
 from askbot.mail.messages import BaseEmail
@@ -25,7 +26,7 @@ autodiscover()
 @moderators_only
 def list_emails(request):
     #list only enabled emails
-    enabled = dict((k, v) for k, v in REGISTRY.items() if v().is_enabled())
+    enabled = dict((k, v) for k, v in list(REGISTRY.items()) if v().is_enabled())
     data = {'emails': enabled}#REGISTRY}
     return render(request, 'email/list_emails.html', data)
 
@@ -57,7 +58,7 @@ def preview_email(request, slug):
             sample['subject'] = email.render_subject(context)
             sample['body'] = email.render_body(context)
         except Exception as e:
-            tech_error = unicode(e)
+            tech_error = str(e)
             LOG.critical(tech_error)
             error_message = getattr(
                         email,

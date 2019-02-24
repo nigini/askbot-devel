@@ -1,3 +1,6 @@
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import re
 from django import forms
 from django.contrib.auth.models import User
@@ -11,19 +14,19 @@ from askbot.utils.functions import split_list, mark_safe_lazy
 from askbot import const
 #from longerusername import MAX_USERNAME_LENGTH
 import logging
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 
 def clean_next(next_url, default=None):
     if next_url is None or not next_url.startswith('/'):
         return default or reverse('index')
     if isinstance(next_url, str):
-        next_url = unicode(urllib.unquote(next_url), 'utf-8', 'replace')
+        next_url = str(urllib.parse.unquote(next_url), 'utf-8', 'replace')
     return next_url.strip()
 
 def get_error_list(form_instance):
     """return flat list of error values for the form"""
-    lists = form_instance.errors.values()
+    lists = list(form_instance.errors.values())
     errors = list()
     for error_list in lists:
         errors.extend(list(error_list))
@@ -57,9 +60,9 @@ def format_errors(error_list):
     a string.
     """
     if len(error_list) == 1:
-        return unicode(error_list[0])
+        return str(error_list[0])
     else:
-        return unicode(error_list)
+        return str(error_list)
 
 class StrippedNonEmptyCharField(forms.CharField):
     def clean(self, value):

@@ -1,3 +1,4 @@
+from builtins import str
 from akismet import Akismet, APIKeyError, AkismetError
 from askbot.conf import settings as askbot_settings
 from askbot import get_version
@@ -78,5 +79,5 @@ def call_akismet(text, request=None, author=None, ip_addr=None, user_agent=None,
     except AkismetError:
         logging.critical('Akismet error: Invalid Akismet key or Akismet account issue!')
     except Exception as e:
-        logging.critical((u'Akismet error: %s' % unicode(e)).encode('utf-8'))
+        logging.critical((u'Akismet error: %s' % str(e)).encode('utf-8'))
     return False

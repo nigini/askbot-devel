@@ -1,6 +1,7 @@
 """reads pluralization formulae from the .po files
 and prints out list of languages for each formula"""
 from __future__ import print_function
+from builtins import filter
 import sys
 import os.path
 import collections

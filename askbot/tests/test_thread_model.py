@@ -1,3 +1,5 @@
+from future import standard_library
+standard_library.install_aliases()
 from askbot.tests.utils import AskbotTestCase
 from askbot.conf import settings as askbot_settings
 from askbot import models

@@ -3,6 +3,7 @@ This module records the site visits by the authenticated users
 
 Included here is the ViewLogMiddleware
 """
+from builtins import object
 from askbot import signals
 from django.utils import timezone
 

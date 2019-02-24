@@ -4,6 +4,7 @@
 Functions in the askbot module perform various
 basic actions on behalf of the forum application
 """
+from builtins import str
 import os
 import platform
 
@@ -25,16 +26,16 @@ REQUIREMENTS = {
     'djcelery': 'django-celery>=3.0.11,<=3.1.17',
     'celery': 'celery==3.1.18',
     'djkombu': 'django-kombu==0.9.4',
-    'followit': 'django-followit==0.2.1',
+    #'followit': 'django-followit==0.2.1',
     'html5lib': 'html5lib==0.9999999',
     'jinja2': 'Jinja2>=2.8',
     'jsonfield': 'jsonfield<=1.0.3',
     'jwt': 'pyjwt<=1.4.0',
-    'keyedcache': 'django-keyedcache<=1.5.1',
+    #'keyedcache': 'django-keyedcache<=1.5.1',
     'markdown2': 'markdown2<=2.3.1',
     'mock': 'mock==2.0.0',
     'oauth2': 'oauth2<=1.9.0.post1',
-    'openid': 'python-openid<=2.2.5',
+    'openid': 'python-openid3<=2.2.6',
     'picklefield': 'django-picklefield==0.3.0',
     'pystache': 'pystache==0.3.1',
     'pytz': 'pytz<=2016.4',
@@ -47,7 +48,7 @@ REQUIREMENTS = {
     'sanction': 'sanction==0.3.1',
     'simplejson': 'simplejson<=3.8.2',
     'six': 'six==1.10.0',
-    'threaded_multihost': 'django-threaded-multihost<=1.4-1',
+    #'threaded_multihost': 'django-threaded-multihost<=1.4-1',
     'tinymce': 'django-tinymce==1.5.3',
     'unidecode': 'unidecode<=0.4.19',
     #'stopforumspam': 'stopforumspam'

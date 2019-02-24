@@ -1,3 +1,4 @@
+from builtins import object
 from askbot.deps.livesettings.compat import get_cache_timeout
 from askbot.deps.livesettings.overrides import get_overrides
 from django.conf import settings
@@ -111,7 +112,7 @@ class Setting(models.Model, CachedObjectMixin):
 
     objects = SettingManager()
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self.id is not None
 
     def cache_key(self, *args, **kwargs):
@@ -137,7 +138,7 @@ class Setting(models.Model, CachedObjectMixin):
         length = get_cache_timeout()
         cache_set(key, value=val, length=length)
 
-    class Meta:
+    class Meta(object):
         unique_together = ('site', 'group', 'key')
         app_label = 'livesettings'
 
@@ -157,7 +158,7 @@ class LongSetting(models.Model, CachedObjectMixin):
 
     objects = LongSettingManager()
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self.id is not None
 
     def cache_key(self, *args, **kwargs):
@@ -184,6 +185,6 @@ class LongSetting(models.Model, CachedObjectMixin):
         length = get_cache_timeout()
         cache_set(key, value=val, length=length)
 
-    class Meta:
+    class Meta(object):
         unique_together = ('site', 'group', 'key')
         app_label = 'livesettings'

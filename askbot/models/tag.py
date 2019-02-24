@@ -1,3 +1,4 @@
+from builtins import object
 import re
 from django.db import models
 from django.contrib.auth.models import User
@@ -282,7 +283,7 @@ class Tag(models.Model):
 
     objects = TagManager()
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
         db_table = u'tag'
         ordering = ('-used_count', 'name')
@@ -305,7 +306,7 @@ class MarkedTag(models.Model):
     user = models.ForeignKey(User, related_name='tag_selections')
     reason = models.CharField(max_length=16, choices=TAG_MARK_REASONS)
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
 
 
@@ -319,7 +320,7 @@ class TagSynonym(models.Model):
     last_auto_rename_at = models.DateTimeField(auto_now=True)
     language_code = LanguageCodeField()
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
 
     def __unicode__(self):

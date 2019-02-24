@@ -1,3 +1,4 @@
+from builtins import map
 from askbot.conf import settings as askbot_settings
 from askbot.conf import gravatar_enabled
 from askbot.models import User, user_can_see_karma
@@ -11,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.encoding import force_unicode
+from django.utils.encoding import force_str
 from django.utils.translation import ugettext as _
 import functools
 
@@ -78,15 +79,15 @@ def get_avatar_data(user, avatar_size):
     avatar_data.append(default_datum)
 
     #if there are >1 primary avatar, select just one
-    primary_avatars = filter(lambda v: v['is_primary'], avatar_data)
+    primary_avatars = [v for v in avatar_data if v['is_primary']]
     if len(primary_avatars) > 1:
         def clear_primary(datum):
             datum['is_primary'] = False
-        map(clear_primary, primary_avatars)
+        list(map(clear_primary, primary_avatars))
         primary_avatars[0]['is_primary'] = True
 
     #insert primary avatar first
-    primary_avatars = filter(lambda v: v['is_primary'], avatar_data)
+    primary_avatars = [v for v in avatar_data if v['is_primary']]
     if len(primary_avatars):
         primary_avatar = primary_avatars[0]
         avatar_data.remove(primary_avatar)
@@ -109,7 +110,7 @@ def show_list(request, user_id=None, extra_context=None, avatar_size=128):
     avatar_data, has_uploaded_avatar, can_upload = get_avatar_data(user, avatar_size)
     status_message = request.session.pop('askbot_avatar_status_message', None)
 
-    if not isinstance(status_message, unicode):
+    if not isinstance(status_message, str):
         #work around bug where this was accidentally encoded into str
         #and stored into session - we lose this message
         #delete this branch some time in 2017
@@ -178,7 +179,7 @@ def upload(request, user_id=None):
                 message = _('Avatar uploaded and set as primary')
             else:
                 errors = get_error_list(form)
-                message = u', '.join(map(lambda v: force_unicode(v), errors))
+                message = u', '.join([force_str(v) for v in errors])
         else:
             message = _('Please choose file to upload')
 

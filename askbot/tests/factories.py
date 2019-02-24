@@ -1,3 +1,4 @@
+from builtins import object
 import factory
 from django.conf import settings
 
@@ -5,7 +6,7 @@ from django.conf import settings
 class UserFactory(factory.django.DjangoModelFactory):
     username = factory.Faker('user_name')
 
-    class Meta:
+    class Meta(object):
         model = settings.AUTH_USER_MODEL
 
 
@@ -13,7 +14,7 @@ class TagFactory(factory.django.DjangoModelFactory):
     name = factory.Faker('word')
     created_by = factory.SubFactory(UserFactory)
 
-    class Meta:
+    class Meta(object):
         model = 'askbot.Tag'
 
 
@@ -21,7 +22,7 @@ class PostFactory(factory.django.DjangoModelFactory):
     text = factory.Faker('paragraph')
     author = factory.SubFactory(UserFactory)
 
-    class Meta:
+    class Meta(object):
         model = 'askbot.Post'
 
 
@@ -44,7 +45,7 @@ class ThreadFactory(factory.django.DjangoModelFactory):
     added_at = factory.Faker('date_time')
     wiki = factory.Faker('boolean')
 
-    class Meta:
+    class Meta(object):
         model = 'askbot.Thread'
 
     @classmethod
@@ -58,7 +59,7 @@ class MessageFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     message = factory.Faker('paragraph')
 
-    class Meta:
+    class Meta(object):
         model = 'askbot.Message'
 
 
@@ -66,7 +67,7 @@ class GroupFactory(factory.django.DjangoModelFactory):
     name = factory.Faker('company')
     description = factory.SubFactory(PostFactory)
 
-    class Meta:
+    class Meta(object):
         model = 'askbot.Group'
 
 
@@ -74,17 +75,17 @@ class GroupMembershipFactory(factory.django.DjangoModelFactory):
     group = factory.SubFactory(GroupFactory)
     user = factory.SubFactory(UserFactory)
 
-    class Meta:
+    class Meta(object):
         model = 'askbot.GroupMembership'
 
 
 class BulkTagSubscriptionFactory(factory.django.DjangoModelFactory):
-    class Meta:
+    class Meta(object):
         model = 'askbot.BulkTagSubscription'
 
 
 class EmailFeedSettingFactory(factory.django.DjangoModelFactory):
     subscriber = factory.SubFactory(UserFactory)
 
-    class Meta:
+    class Meta(object):
         model = 'askbot.EmailFeedSetting'

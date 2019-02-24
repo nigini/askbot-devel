@@ -1,3 +1,7 @@
+from builtins import filter
+from builtins import map
+from builtins import str
+from builtins import object
 import datetime
 import logging
 import re
@@ -143,7 +147,7 @@ class ActivityQuerySet(models.query.QuerySet):
             else:
                 logging.debug(
                             'method get_origin_post() not implemented for %s' \
-                            % unicode(post)
+                            % str(post)
                         )
         return list(origin_posts)
 
@@ -160,7 +164,7 @@ class ActivityQuerySet(models.query.QuerySet):
 
         #3) get links from activity objects to content objects
         objects_by_activity = dict()
-        for content_type_id, object_id_list in content_object_ids.items():
+        for content_type_id, object_id_list in list(content_object_ids.items()):
             content_type = ContentType.objects.get_for_id(content_type_id)
             model_class = content_type.model_class()
             content_objects = model_class.objects.filter(id__in=object_id_list)
@@ -283,7 +287,7 @@ class ActivityAuditStatus(models.Model):
     activity = models.ForeignKey('Activity')
     status = models.SmallIntegerField(choices=STATUS_CHOICES, default=STATUS_NEW)
 
-    class Meta:
+    class Meta(object):
         unique_together = ('user', 'activity')
         app_label = 'askbot'
         db_table = 'askbot_activityauditstatus'
@@ -316,7 +320,7 @@ class Activity(models.Model):
     def __unicode__(self):
         return u'[%s] was active at %s' % (self.user.username, self.active_at)
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
         db_table = u'activity'
         verbose_name = _("activity")
@@ -433,13 +437,13 @@ class EmailFeedSetting(models.Model):
 
     objects = EmailFeedSettingManager()
 
-    class Meta:
+    class Meta(object):
         # Added to make account merges work properly
         unique_together = ('subscriber', 'feed_type')
         app_label = 'askbot'
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return str(self).encode('utf-8')
 
     def __unicode__(self):
         if self.reported_at is None:
@@ -495,7 +499,7 @@ class GroupMembership(models.Model):
     level = models.SmallIntegerField(
         default=FULL, choices=LEVEL_CHOICES,)
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
         unique_together = ('group', 'user')
 
@@ -618,7 +622,7 @@ class Group(AuthGroup):
 
     objects = GroupManager()
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
         db_table = 'askbot_group'
 
@@ -687,7 +691,7 @@ class Group(AuthGroup):
         emails = functions.split_list(self.preapproved_emails)
         email_field = EmailField()
         try:
-            map(lambda v: email_field.clean(v), emails)
+            list([email_field.clean(v) for v in emails])
         except exceptions.ValidationError:
             raise exceptions.ValidationError(
                 _('Please give a list of valid email addresses.')
@@ -698,7 +702,7 @@ class Group(AuthGroup):
         from askbot.forms import DomainNameField
         domain_field = DomainNameField()
         try:
-            map(lambda v: domain_field.clean(v), domains)
+            list([domain_field.clean(v) for v in domains])
         except exceptions.ValidationError:
             raise exceptions.ValidationError(
                 _('Please give a list of valid email domain names.')
@@ -781,6 +785,6 @@ class BulkTagSubscription(models.Model):
     def tag_list(self):
         return [tag.name for tag in self.tags.all()]
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
         ordering = ['-date_added']

@@ -1,3 +1,4 @@
+from builtins import object
 class BaseProtocol(object):
     """Base class for all authentication protocols"""
 

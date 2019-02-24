@@ -1,3 +1,9 @@
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from past.utils import old_div
+from builtins import object
 from askbot import startup_procedures
 startup_procedures.run()
 
@@ -10,7 +16,7 @@ import hashlib
 import logging
 import os
 import re
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from functools import partial
 import uuid
 from celery import states
@@ -386,8 +392,8 @@ def _check_gravatar(gravatar):
     #todo: think of whether we need this and if so
     #how to check the avatar type appropriately
     gravatar_url = askbot_settings.GRAVATAR_BASE_URL + "/%s?d=404" % gravatar
-    code = urllib.urlopen(gravatar_url).getcode()
-    if urllib.urlopen(gravatar_url).getcode() != 404:
+    code = urllib.request.urlopen(gravatar_url).getcode()
+    if urllib.request.urlopen(gravatar_url).getcode() != 404:
         return 'g' #gravatar
     else:
         return 'n' #none
@@ -1437,7 +1443,7 @@ def user_get_localized_profile(self):
 
 def user_update_localized_profile(self, **kwargs):
     profile = self.get_localized_profile()
-    for key, val in kwargs.items():
+    for key, val in list(kwargs.items()):
         setattr(profile, key, val)
     profile.update_cache()
     lp = LocalizedUserProfile.objects.filter(pk=profile.pk)
@@ -2298,7 +2304,7 @@ def user_create_post_reject_reason(
         author = self,
         revised_at = timestamp,
         text = details,
-        comment = unicode(const.POST_STATUS['default_version'])
+        comment = str(const.POST_STATUS['default_version'])
     )
 
     reason.details = details
@@ -2338,8 +2344,8 @@ def user_post_answer(self,
         if (now - asked  < delta and self.reputation < askbot_settings.MIN_REP_TO_ANSWER_OWN_QUESTION):
             diff = asked + delta - now
             days = diff.days
-            hours = int(diff.seconds/3600)
-            minutes = int(diff.seconds/60)
+            hours = int(old_div(diff.seconds,3600))
+            minutes = int(old_div(diff.seconds,60))
 
             if days > 2:
                 if asked.year == now.year:
@@ -3753,7 +3759,7 @@ def calculate_gravatar_hash(instance, **kwargs):
     user = instance
     if kwargs.get('raw', False):
         return
-    clean_email = user.email.strip().lower()
+    clean_email = user.email.strip().lower().encode('utf-8')
     user.gravatar = hashlib.md5(clean_email).hexdigest()
 
 
@@ -4187,7 +4193,7 @@ def notify_punished_users(user, **kwargs):
                     suspended_user_cannot=True
                 )
     except django_exceptions.PermissionDenied as e:
-        user.message_set.create(message = unicode(e))
+        user.message_set.create(message = str(e))
 
 def post_anonymous_askbot_content(
                                 sender,

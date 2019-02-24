@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import input
 from django.core.management.base import NoArgsCommand
 from django.contrib.auth.models import User
 from django.db.models.signals import pre_save, post_save
@@ -29,7 +30,7 @@ class Command(NoArgsCommand):
         print('')
         prompt = 'Do you really wish to REMOVE user (id=%d, name=%s) from the list of site admins? yes/no: ' \
                 % (u.id, u.username)
-        str = raw_input(prompt)
+        str = eval(input(prompt))
         if str != 'yes':
             print('action canceled')
             sys.exit(1)

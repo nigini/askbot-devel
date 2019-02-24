@@ -1,3 +1,9 @@
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from past.utils import old_div
+from builtins import object
 from collections import defaultdict
 import operator
 import logging
@@ -85,7 +91,7 @@ class PostToGroup(models.Model):
     post = models.ForeignKey('Post')
     group = models.ForeignKey('Group')
 
-    class Meta:
+    class Meta(object):
         unique_together = ('post', 'group')
         app_label = 'askbot'
         db_table = 'askbot_post_groups'
@@ -246,7 +252,7 @@ class PostManager(BaseQuerySetManager):
             author=author,
             revised_at=added_at,
             text=text,
-            comment=unicode(const.POST_STATUS['default_version']),
+            comment=str(const.POST_STATUS['default_version']),
             by_email=by_email,
             ip_addr=ip_addr
         )
@@ -451,7 +457,7 @@ class Post(models.Model):
 
     objects = PostManager()
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
         db_table = 'askbot_post'
 
@@ -1073,7 +1079,7 @@ class Post(models.Model):
             else:
                 max_words = askbot_settings.MIN_WORDS_TO_WRAP_POSTS
         else:
-            max_words = int(max_length/5)
+            max_words = int(old_div(max_length,5))
 
         # TODO: truncate so that we have max number of lines
         # the issue is that code blocks have few words
@@ -1588,7 +1594,7 @@ class Post(models.Model):
         return when, who
 
     def tagname_meta_generator(self):
-        return u','.join([unicode(tag) for tag in self.get_tag_names()])
+        return u','.join([str(tag) for tag in self.get_tag_names()])
 
     def get_parent_post(self):
         """returns parent post or None
@@ -1911,7 +1917,7 @@ class Post(models.Model):
             is_anonymous=is_anonymous,
             revised_at=revised_at,
             tagnames=self.thread.tagnames,
-            summary=unicode(comment),
+            summary=str(comment),
             text=text,
             by_email=by_email,
             email_address=email_address,
@@ -1998,7 +2004,7 @@ class Post(models.Model):
             else:
                 attr = None
             if attr is not None:
-                return u'%s %s' % (self.thread.title, unicode(attr))
+                return u'%s %s' % (self.thread.title, str(attr))
             else:
                 return self.thread.title
         raise NotImplementedError
@@ -2024,7 +2030,7 @@ class Post(models.Model):
             if post == answer_post:
                 break
             order_number += 1
-        return int(order_number/const.ANSWERS_PAGE_SIZE) + 1
+        return int(old_div(order_number,const.ANSWERS_PAGE_SIZE)) + 1
 
     def get_order_number(self):
         if not self.is_comment():
@@ -2096,7 +2102,7 @@ class PostRevisionManager(models.Manager):
             # set default summary
             if revision.summary == '':
                 if revision.revision == 1:
-                    revision.summary = unicode(const.POST_STATUS['default_version'])
+                    revision.summary = str(const.POST_STATUS['default_version'])
                 else:
                     revision.summary = 'No.%s Revision' % revision.revision
             revision.save()
@@ -2162,7 +2168,7 @@ class PostRevision(models.Model):
 
     objects = PostRevisionManager()
 
-    class Meta:
+    class Meta(object):
         # INFO: This `unique_together` constraint might be problematic for
         #       databases in which
         #       2+ NULLs cannot be stored in an UNIQUE column.
@@ -2317,7 +2323,7 @@ class PostFlagReason(models.Model):
     title = models.CharField(max_length=128)
     details = models.ForeignKey(Post, related_name='post_reject_reasons')
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
         verbose_name = _("post flag reason")
         verbose_name_plural = _("post flag reasons")
@@ -2331,7 +2337,7 @@ class DraftAnswer(DraftContent):
     thread = models.ForeignKey('Thread', related_name='draft_answers')
     author = models.ForeignKey(User, related_name='draft_answers')
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
 
 

@@ -2,7 +2,9 @@
 Q&A website settings - title, desctiption, basic urls
 keywords
 """
-from urlparse import urlparse
+from future import standard_library
+standard_library.install_aliases()
+from urllib.parse import urlparse
 
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings as django_settings

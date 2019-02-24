@@ -3,6 +3,8 @@ functions that happen on behalf of users
 
 e.g. ``some_user.do_something(...)``
 """
+from future import standard_library
+standard_library.install_aliases()
 from bs4 import BeautifulSoup
 from django.core import exceptions
 from django.core.urlresolvers import reverse

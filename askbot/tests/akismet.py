@@ -1,9 +1,12 @@
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 from askbot.tests.utils import AskbotTestCase, with_settings
 from askbot.utils.akismet_utils import akismet_check_spam
 #from askbot.tasks import submit_spam_posts
 #from askbot.utils.transaction import defer_celery_task
 import responses
-from urlparse import parse_qsl
+from urllib.parse import parse_qsl
 
 TEXT = 'hello foobar'
 API_KEY = 'foobar'

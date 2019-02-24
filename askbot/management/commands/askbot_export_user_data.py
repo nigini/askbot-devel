@@ -1,4 +1,5 @@
 """Exports data for a user with given ID"""
+from builtins import str
 import json
 import os
 import re
@@ -56,13 +57,13 @@ class Command(BaseCommand):
         data = {'user_profile': user_profile}
 
         question_data = self.get_question_data(user)
-        data['questions'] = question_data.values()
+        data['questions'] = list(question_data.values())
 
         answer_data = self.get_post_data(user, 'answer')
-        data['answers'] = answer_data.values()
+        data['answers'] = list(answer_data.values())
 
         comment_data = self.get_post_data(user, 'comment')
-        data['comments'] = comment_data.values()
+        data['comments'] = list(comment_data.values())
 
         upfiles = self.get_upfiles(data)
 
@@ -199,7 +200,7 @@ class Command(BaseCommand):
         """Returns the same as the `get_post_data` method,
         but in addition fills in question title and the tags"""
         post_data = cls.get_post_data(user, 'question')
-        for question, datum in post_data.items():
+        for question, datum in list(post_data.items()):
             datum['title'] = question.thread.title
             datum['tags'] = question.thread.tagnames
 

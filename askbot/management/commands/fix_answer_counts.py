@@ -3,6 +3,8 @@ to run type (on the command line:)
 
 python manage.py fix_answer_counts
 """
+from future import standard_library
+standard_library.install_aliases()
 from django.core.management.base import NoArgsCommand
 from django.db.models import signals
 from askbot import models

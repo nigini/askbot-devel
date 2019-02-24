@@ -1,6 +1,7 @@
 """
 External service key settings
 """
+from builtins import str
 from django.utils.translation import string_concat
 from django.utils.translation import ugettext_lazy as _
 
@@ -233,7 +234,7 @@ NEED_EXTRA_SETUP = ('Google Plus', 'Twitter', 'MediaWiki', 'Facebook',
 
 for provider in providers:
     if provider == 'local':
-        provider_string = unicode(_('local password'))
+        provider_string = str(_('local password'))
     else:
         provider_string = provider
 

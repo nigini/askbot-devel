@@ -4,6 +4,11 @@
 http://code.google.com/p/django-values/
 """
 from __future__ import absolute_import
+from __future__ import division
+from past.builtins import cmp
+from builtins import str
+from past.utils import old_div
+from builtins import object
 from decimal import Decimal
 from collections import OrderedDict
 from django import forms
@@ -11,7 +16,7 @@ from django.conf import settings as django_settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.cache import cache
 import simplejson
-from django.utils.encoding import force_unicode
+from django.utils.encoding import force_str
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from django.utils.translation import ugettext_lazy
@@ -67,7 +72,7 @@ class SortedDotDict(object):
             raise AttributeError(key)
 
     def __iter__(self):
-        vals = self.values()
+        vals = list(self.values())
         for k in vals:
             yield k
 
@@ -81,25 +86,25 @@ class SortedDotDict(object):
         del self._dict[key]
 
     def keys(self):
-        return self._dict.keys()
+        return list(self._dict.keys())
 
     def values(self):
-        vals = self._dict.values()
+        vals = list(self._dict.values())
         vals = [v for v in vals if isinstance(v, (ConfigurationGroup, Value))]
         vals.sort()
         return vals
 
     def items(self):
-        return self._dict.items()
+        return list(self._dict.items())
 
     def iterkeys(self):
-        return self._dict.iterkeys()
+        return iter(list(self._dict.keys()))
 
     def itervalues(self):
-        return self._dict.itervalues()
+        return iter(list(self._dict.values()))
 
     def iteritems(self):
-        return self._dict.iteritems()
+        return iter(list(self._dict.items()))
 
     def get(self, *args, **kwargs):
         return self._dict.get(*args, **kwargs)
@@ -198,7 +203,7 @@ class ConfigurationGroup(SortedDotDict):
 
     def dict_values(self, load_modules=True):
         vals = {}
-        keys = super(ConfigurationGroup, self).keys()
+        keys = list(super(ConfigurationGroup, self).keys())
         for key in keys:
             v = self[key]
             if isinstance(v, Value):
@@ -209,7 +214,7 @@ class ConfigurationGroup(SortedDotDict):
         return vals
 
     def values(self):
-        vals = super(ConfigurationGroup, self).values()
+        vals = list(super(ConfigurationGroup, self).values())
         return [v for v in vals if v.enabled()]
 
 BASE_GROUP = ConfigurationGroup(
@@ -287,7 +292,7 @@ class Value(object):
         return iter(self.value)
 
     def __unicode__(self):
-        return unicode(self.value)
+        return str(self.value)
 
     def __str__(self):
         return str(self.value)
@@ -323,16 +328,16 @@ class Value(object):
         return new_value
 
     def _default_text(self):
-        if not self.use_default or force_unicode(self.default) == '':
+        if not self.use_default or force_str(self.default) == '':
             note = ""
         elif self.choices:
             work = []
             for x in self.choices:
                 if x[0] in self.default:
-                    work.append(force_unicode(x[1]))
-            note = _('Default value: ') + unicode(u", ".join(work))
+                    work.append(force_str(x[1]))
+            note = _('Default value: ') + str(u", ".join(work))
         else:
-            note = _("Default value: %s") % force_unicode(self.default)
+            note = _("Default value: %s") % force_str(self.default)
 
         return note
 
@@ -374,7 +379,7 @@ class Value(object):
             default_code = django_settings.LANGUAGE_CODE
             default_name = langs_dict[default_code]
             langs_dict[0] = default_code, default_name
-            langs = langs_dict.keys()
+            langs = list(langs_dict.keys())
         else:
             langs = (django_settings.LANGUAGE_CODE,)
 
@@ -390,7 +395,7 @@ class Value(object):
 
         if self.localized and len(django_settings.LANGUAGES) > 1:
             for field in fields:
-                lang_name = unicode(langs_dict[field.language_code])
+                lang_name = str(langs_dict[field.language_code])
                 field.label += mark_safe(' <span class="lang">(%s)</span>' % lang_name)
 
         return fields
@@ -550,11 +555,11 @@ class Value(object):
             if language_code and self.localized:
                 current_lang = get_language()
                 activate_language(language_code)
-                localized_value = unicode(self.default)
+                localized_value = str(self.default)
                 activate_language(current_lang)
                 return localized_value
             elif self.use_default:
-                return unicode(self.default)
+                return str(self.default)
 
         return ''
 
@@ -589,13 +594,13 @@ class Value(object):
         "Returns a value suitable for storage into a CharField"
         if value == NOTSET:
             value = ""
-        return unicode(value)
+        return str(value)
 
     def to_editor(self, value):
         "Returns a value suitable for display in a form widget"
         if value == NOTSET:
             return NOTSET
-        return unicode(value)
+        return str(value)
 
 ###############
 # VALUE TYPES #
@@ -642,7 +647,7 @@ class DecimalValue(Value):
         if value == NOTSET:
             return "0"
         else:
-            return unicode(value)
+            return str(value)
 
 # DurationValue has a lot of duplication and ugliness because of issue #2443
 # Until DurationField is sorted out, this has to do some extra work
@@ -673,7 +678,7 @@ class DurationValue(Value):
         if value == NOTSET:
             return NOTSET
         else:
-            return unicode(value.days * 24 * 3600 + value.seconds + float(value.microseconds) / 1000000)
+            return str(value.days * 24 * 3600 + value.seconds + float(value.microseconds) / 1000000)
 
 class FloatValue(Value):
 
@@ -693,7 +698,7 @@ class FloatValue(Value):
         if value == NOTSET:
             return "0"
         else:
-            return unicode(value)
+            return str(value)
 
 class IntegerValue(Value):
     class field(forms.IntegerField):
@@ -711,7 +716,7 @@ class IntegerValue(Value):
         if value == NOTSET:
             return "0"
         else:
-            return unicode(value)
+            return str(value)
 
 
 class PercentValue(Value):
@@ -732,13 +737,13 @@ class PercentValue(Value):
     def to_python(self, value):
         if value == NOTSET:
             value = 0
-        return Decimal(value) / 100
+        return old_div(Decimal(value), 100)
 
     def to_editor(self, value):
         if value == NOTSET:
             return "0"
         else:
-            return unicode(value)
+            return str(value)
 
 class PositiveIntegerValue(IntegerValue):
 
@@ -765,7 +770,7 @@ class StringValue(Value):
     def to_python(self, value):
         if value == NOTSET:
             value = ""
-        return unicode(value)
+        return str(value)
 
     to_editor = to_python
 
@@ -801,7 +806,7 @@ class LongStringValue(Value):
     def to_python(self, value):
         if value == NOTSET:
             value = ""
-        return unicode(value)
+        return str(value)
 
     to_editor = to_python
 

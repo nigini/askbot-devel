@@ -1,5 +1,7 @@
 from __future__ import print_function
 #todo: http://stackoverflow.com/questions/837828/how-to-use-a-slug-in-django
+from builtins import str
+from builtins import object
 DEBUGME = False
 import os
 import re
@@ -192,7 +194,7 @@ class X(object):#
         for rev in rev_group:
             rev_type = cls.get_post_revision_type(rev)
             rev_types[rev_type] = 1
-        rev_types = rev_types.keys()
+        rev_types = list(rev_types.keys())
 
         #make sure that exclusive rev modes are not mixed
         exclusive = cls.exclusive_revision_modes
@@ -259,7 +261,7 @@ class X(object):#
     #crude method of getting id provider name from the url
     @classmethod
     def get_openid_provider_name(cls, openid_url):
-        openid_str = unicode(openid_url)
+        openid_str = str(openid_url)
         bits = openid_str.split('/')
         base_url = bits[2] #assume this is base url
         url_bits = base_url.split('.')
@@ -775,8 +777,8 @@ it may be helpful to split this procedure in two:\n
 
     def _report_missing_badges(self):
         d = self._missing_badges
-        unused = [name for name in d.keys() if d[name] == 0]
-        dropped = [unidecode(name) for name in d.keys() if d[name] > 0]
+        unused = [name for name in list(d.keys()) if d[name] == 0]
+        dropped = [unidecode(name) for name in list(d.keys()) if d[name] > 0]
         print('Warning - following unsupported badges were dropped:')
         print(', '.join(dropped))
         sys.stdout.flush()
@@ -886,7 +888,7 @@ it may be helpful to split this procedure in two:\n
                 try:
                     field_type = model._meta.get_field(field_name)
                 except fields.FieldDoesNotExist as e:
-                    print(u"Warning: %s" % unicode(e))
+                    print(u"Warning: %s" % str(e))
                     continue
                 field_value = se_parser.parse_value(col.text, field_type)
                 setattr(model_entry, field_name, field_value)

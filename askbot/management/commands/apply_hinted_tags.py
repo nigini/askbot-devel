@@ -1,3 +1,5 @@
+from future import standard_library
+standard_library.install_aliases()
 from django.conf import settings as django_settings
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
@@ -35,7 +37,7 @@ class Command(BaseCommand):
         except IOError:
             raise CommandError('file "%s" not found' % kwargs['tags_file'])
 
-        tags_list = map(lambda v: v.strip(), tags_input.split('\n'))
+        tags_list = [v.strip() for v in tags_input.split('\n')]
 
         multiword_tags = list()
         for tag in tags_list:

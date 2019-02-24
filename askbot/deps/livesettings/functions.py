@@ -1,3 +1,5 @@
+from builtins import str
+from builtins import object
 from django.utils.translation import ugettext as _
 from askbot.deps.livesettings import values
 from askbot.deps.livesettings.models import SettingNotSet
@@ -73,7 +75,7 @@ class ConfigurationSettings(object):
 
         def groups(self):
             """Return ordered list"""
-            return self.settings.values()
+            return list(self.settings.values())
 
         def get_super_groups(self):
             """Return ordered list of super groups"""
@@ -146,7 +148,7 @@ class ConfigurationSettings(object):
         return setattr(self.__instance, attr, value)
 
     def __unicode__(self):
-        return u"ConfigurationSettings: " + unicode(self.groups())
+        return u"ConfigurationSettings: " + str(self.groups())
 
 def config_exists(group, key):
     """Test to see if a setting has been registered"""

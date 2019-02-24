@@ -1,18 +1,22 @@
 from __future__ import absolute_import
 ## Django settings for ASKBOT enabled project.
+from builtins import object
 import os.path
+#import inspect
 import logging
 import askbot
 import site
 import sys
 import dj_database_url
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+#sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 #this line is added so that we can import pre-packaged askbot dependencies
 ASKBOT_ROOT = os.path.abspath(os.path.dirname(askbot.__file__))
+#ASKBOT_ROOT = os.path.realpath(os.path.dirname(inspect.getfile(askbot)))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 site.addsitedir(os.path.join(ASKBOT_ROOT, 'deps'))
 
+ASKBOT_SELF_TEST = False
 DEBUG = True  # set to True to enable debugging
 TEMPLATE_DEBUG = False  # keep false when debugging jinja2 templates
 INTERNAL_IPS = ('127.0.0.1',)

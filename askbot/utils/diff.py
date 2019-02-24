@@ -66,7 +66,7 @@ def html2list(x, b=0):
             else:
                 cur += c
     out.append(cur)
-    return filter(lambda x: x is not '', out)
+    return [x for x in out if x is not '']
 
 if __name__ == '__main__':
     import sys

@@ -1,3 +1,7 @@
+from __future__ import division
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import random
 import string
 import logging
@@ -40,7 +44,7 @@ class ReplyAddressManager(BaseQuerySetManager):
         reply_address = ReplyAddress(**kwargs)
         while True:
             reply_address.address = ''.join(random.choice(string.letters +
-                string.digits) for i in xrange(random.randint(12, 25))).lower()
+                string.digits) for i in range(random.randint(12, 25))).lower()
             if self.filter(address=reply_address.address).count() == 0:
                 break
         reply_address.save()
@@ -73,7 +77,7 @@ class ReplyAddress(models.Model):
 
     objects = ReplyAddressManager()
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
         db_table = 'askbot_replyaddress'
         verbose_name = _("reply address")
@@ -134,7 +138,7 @@ class ReplyAddress(models.Model):
             result = self.user.post_comment(self.post, body_text, by_email=True)
         elif self.post.post_type == 'question':
             if self.reply_action == 'auto_answer_or_comment':
-                wordcount = len(body_text)/6  # TODO: this is a simplistic hack
+                wordcount = old_div(len(body_text),6)  # TODO: this is a simplistic hack
                 if wordcount > askbot_settings.MIN_WORDS_FOR_ANSWER_BY_EMAIL:
                     reply_action = 'post_answer'
                 else:

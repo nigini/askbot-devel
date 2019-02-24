@@ -261,7 +261,7 @@ class LoginForm(forms.Form):
                 _('Please, enter your new password')
             )
             field_set = set(('new_password', 'new_password_retyped'))
-            if field_set.issubset(self.cleaned_data.keys()):
+            if field_set.issubset(list(self.cleaned_data.keys())):
                 new_password = self.cleaned_data[
                                                 'new_password'
                                             ].strip()

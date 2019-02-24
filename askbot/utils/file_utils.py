@@ -1,8 +1,11 @@
 """file utilities for askbot"""
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import os
 import random
 import time
-import urlparse
+import urllib.parse
 from django.core.files.storage import get_storage_class
 from django.conf import settings as django_settings
 
@@ -36,9 +39,9 @@ def store_file(file_object, file_name_prefix = ''):
     file_storage.save(file_name, file_object)
 
     file_url = file_storage.url(file_name)
-    parsed_url = urlparse.urlparse(file_url)
-    file_url = urlparse.urlunparse(
-        urlparse.ParseResult(
+    parsed_url = urllib.parse.urlparse(file_url)
+    file_url = urllib.parse.urlunparse(
+        urllib.parse.ParseResult(
             parsed_url.scheme,
             parsed_url.netloc,
             parsed_url.path,

@@ -1,5 +1,6 @@
 """http-related utilities for askbot
 """
+from builtins import str
 from copy import copy
 
 def hide_passwords(data):
@@ -39,7 +40,7 @@ def get_request_info(request):
     elif request.method == 'POST':
         data = request.POST
     data = hide_passwords(copy(data))
-    info += 'data: %s\n' % unicode(data)
+    info += 'data: %s\n' % str(data)
     info += 'host: %s\n' % request.get_host()
     if request.user.is_authenticated():
         info += 'user ID: %d\n' % request.user.id

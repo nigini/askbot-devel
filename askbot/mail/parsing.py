@@ -1,6 +1,7 @@
 """a module for parsing email response text
 this file is a candidate for publishing as an independent module
 """
+from past.builtins import basestring
 import re
 import sys
 from askbot.conf import settings as askbot_settings

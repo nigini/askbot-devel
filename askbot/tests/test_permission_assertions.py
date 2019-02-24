@@ -1,3 +1,4 @@
+from builtins import range
 import datetime
 from django.test.client import Client
 from django.core.urlresolvers import reverse

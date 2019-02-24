@@ -1,3 +1,4 @@
+from builtins import str
 from django import template
 from django.contrib.sites.models import Site
 from django.core import urlresolvers
@@ -35,7 +36,7 @@ def break_at(value,  chars=40):
     return value
 
     chars = int(chars)
-    value = unicode(value)
+    value = str(value)
     if len(value) < chars:
         return value
     else:

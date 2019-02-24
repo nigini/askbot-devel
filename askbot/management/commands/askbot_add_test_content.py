@@ -1,4 +1,8 @@
 from __future__ import print_function
+from __future__ import division
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import sys
 from askbot.conf import settings as askbot_settings
 from askbot.models import User
@@ -151,7 +155,7 @@ class Command(NoArgsCommand):
 
             # len(TAGS_TEMPLATE) tags per question - each tag is different
             tags = " ".join([(t + self.bad_stuff()) % user.id for t in TAGS_TEMPLATE])
-            if i < NUM_QUESTIONS/2:
+            if i < old_div(NUM_QUESTIONS,2):
                 tags += ' one-tag'
 
             if i % 2 == 0:

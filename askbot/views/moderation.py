@@ -1,3 +1,4 @@
+from past.builtins import cmp
 from askbot.utils import decorators
 from askbot.utils.html import sanitize_html
 from askbot.utils.functions import decode_and_loads

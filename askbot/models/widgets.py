@@ -1,3 +1,4 @@
+from builtins import object
 from django.db import models
 from django.utils.translation import ugettext_lazy
 from askbot.models import Tag, Group
@@ -14,7 +15,7 @@ class AskWidget(models.Model):
     inner_style = models.TextField(blank=True)
     outer_style = models.TextField(blank=True)
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'
 
     def __unicode__(self):
@@ -34,5 +35,5 @@ class QuestionWidget(models.Model):
     style = models.TextField(ugettext_lazy('css for the widget'),
             default=DEFAULT_QUESTION_WIDGET_STYLE, blank=True)
 
-    class Meta:
+    class Meta(object):
         app_label = 'askbot'

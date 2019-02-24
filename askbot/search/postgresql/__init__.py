@@ -1,4 +1,6 @@
 """Procedures to initialize the full text search in PostgresQL"""
+from __future__ import division
+from past.utils import old_div
 import askbot
 from askbot.utils.translation import get_language
 from django.db import connection, models
@@ -69,7 +71,7 @@ def run_full_text_search(query_set, query_text, text_search_vector_name):
 
     #a hack with japanese search for the short queries
     if language_code in ['ja', 'zh-cn'] and len(query_text) in (1, 2):
-        mul = 4/len(query_text) #4 for 1 and 2 for 2
+        mul = old_div(4,len(query_text)) #4 for 1 and 2 for 2
         query_text = (query_text + ' ')*mul
 
     #the table name is a hack, because user does not have the language code

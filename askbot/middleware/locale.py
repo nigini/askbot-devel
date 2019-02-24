@@ -1,5 +1,6 @@
 "Taken from django.middleware.locale: this is the locale selecting middleware that will look at accept headers"
 
+from builtins import object
 from django.utils.cache import patch_vary_headers
 from django.utils import translation
 from askbot.conf import settings

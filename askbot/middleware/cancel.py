@@ -1,3 +1,5 @@
+from builtins import str
+from builtins import object
 from django.http import HttpResponseRedirect
 from askbot.utils.forms import get_next_url
 class CancelActionMiddleware(object):
@@ -8,7 +10,7 @@ class CancelActionMiddleware(object):
                 msg = getattr(view_func,'CANCEL_MESSAGE')
             except AttributeError:
                 msg = 'action canceled'
-            request.user.message_set.create(message=unicode(msg))
+            request.user.message_set.create(message=str(msg))
             return HttpResponseRedirect(get_next_url(request))
         else:
             return None

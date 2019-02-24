@@ -2,6 +2,7 @@
 Settings that modify processing of user text input
 """
 
+from builtins import range
 import re
 from django.utils.translation import ugettext_lazy as _
 from askbot.conf.settings_wrapper import settings

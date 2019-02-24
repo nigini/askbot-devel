@@ -1,16 +1,23 @@
 """functions in this module return body text
 of email messages for various occasions
 """
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from past.builtins import basestring
+from past.utils import old_div
+from builtins import object
 import askbot
 import functools
 import logging
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from copy import copy
 from django.conf import settings as django_settings
 from django.core.urlresolvers import reverse
 from django.template import Context
 from django.template.loader import get_template
-from django.utils.encoding import force_unicode
+from django.utils.encoding import force_str
 from django.utils.html import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from askbot import const
@@ -152,7 +159,7 @@ class BaseEmail(object):
         else:
             LOG.warning(
                 'Attempting to send disabled email "%s"',
-                force_unicode(self.title)
+                force_str(self.title)
             )
 
 
@@ -355,7 +362,7 @@ class InstantEmailAlert(BaseEmail):
         can_reply = to_user.can_post_by_email()
         from askbot.models import get_reply_to_addresses
         reply_address, alt_reply_address = get_reply_to_addresses(to_user, post)
-        alt_reply_subject = urllib.quote(('Re: ' + post.thread.title).encode('utf-8'))
+        alt_reply_subject = urllib.parse.quote(('Re: ' + post.thread.title).encode('utf-8'))
 
         return {
            'admin_email': askbot_settings.ADMIN_EMAIL,
@@ -531,7 +538,7 @@ class InsufficientReputation(BaseEmail):
         user = context['user']
         min_rep = askbot_settings.MIN_REP_TO_POST_BY_EMAIL
         min_upvotes = 1 + \
-                      (min_rep/askbot_settings.REP_GAIN_FOR_RECEIVING_UPVOTE)
+                      (old_div(min_rep,askbot_settings.REP_GAIN_FOR_RECEIVING_UPVOTE))
         return {
             'username': user.username,
             'recipient_user': user,
@@ -628,7 +635,7 @@ class BatchEmailAlert(BaseEmail):
         qq = Post.objects.filter(post_type='question')[:2]
 
         act_list = list()
-        act_list.append(force_unicode(_('new question')))
+        act_list.append(force_str(_('new question')))
         format_action_count('%(num)d rev', 3, act_list)
         format_action_count('%(num)d ans', 2, act_list)
         qdata.append({
@@ -794,7 +801,7 @@ class ApprovedPostNotificationRespondable(BaseEmail):
 
     def process_context(self, context):
         revision = context['revision']
-        prompt = force_unicode(_('To add to your post EDIT ABOVE THIS LINE'))
+        prompt = force_str(_('To add to your post EDIT ABOVE THIS LINE'))
         context.update({
             'site_name': askbot_settings.APP_SHORT_NAME,
             'post': revision.post,

@@ -3,6 +3,8 @@ that do not have revisions by creating a fake initial revision
 based on the content stored in the post itself
 """
 from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
 from django.core.management.base import BaseCommand
 from askbot import models
 from askbot import const

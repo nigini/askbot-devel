@@ -1,3 +1,4 @@
+from builtins import object
 from django.conf import settings as django_settings
 from django.core.exceptions import ImproperlyConfigured
 from django.template.backends.base import BaseEngine

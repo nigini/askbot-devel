@@ -1,3 +1,4 @@
+from past.builtins import basestring
 import askbot
 import os.path
 from django.template.loader import BaseLoader
@@ -131,7 +132,7 @@ class SkinEnvironment(MultilingualEnvironment):
         the loader for the skin templates
         """
         loaders = list()
-        skin_dirs = utils.get_available_skins(selected = self.skin).values()
+        skin_dirs = list(utils.get_available_skins(selected = self.skin).values())
         template_dirs = [os.path.join(skin_dir, 'templates') for skin_dir in skin_dirs]
         loaders.append(jinja_loaders.FileSystemLoader(template_dirs))
         return loaders
@@ -163,7 +164,7 @@ def get_app_dir_env(language_code):
 LOADERS = django_settings.TEMPLATES
 SKINS = dict()
 if askbot.is_multilingual() or HAS_ASKBOT_LOCALE_MIDDLEWARE:
-    for lang in dict(django_settings.LANGUAGES).keys():
+    for lang in list(dict(django_settings.LANGUAGES).keys()):
         SKINS.update(load_skins(lang))
 else:
     SKINS = load_skins(django_settings.LANGUAGE_CODE)
@@ -171,7 +172,7 @@ else:
 APP_DIR_ENVS = dict()
 if 'askbot.skins.loaders.JinjaAppDirectoryLoader' in LOADERS:
     if askbot.is_multilingual() or HAS_ASKBOT_LOCALE_MIDDLEWARE:
-        for lang in dict(django_settings.LANGUAGES).keys():
+        for lang in list(dict(django_settings.LANGUAGES).keys()):
             APP_DIR_ENVS[lang] = get_app_dir_env(lang)
     else:
         lang = django_settings.LANGUAGE_CODE

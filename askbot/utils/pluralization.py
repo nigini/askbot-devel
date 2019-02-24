@@ -1,4 +1,5 @@
 """pluralization formulae for the supported languages"""
+from builtins import str
 import logging
 
 def arabic(count):

@@ -3,6 +3,7 @@ it to another, all corresponding questions are automatically
 retagged
 """
 from __future__ import print_function
+from builtins import str
 import sys
 from django.conf import settings as django_settings
 from django.core import management

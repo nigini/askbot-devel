@@ -1,3 +1,4 @@
+from builtins import object
 from django.conf import settings
 from django.utils.translation import pgettext
 from appconf import AppConf
@@ -35,7 +36,7 @@ class AskbotStaticSettings(AppConf):
     USER_DATA_EXPORT_DIR = const.DEFAULT_USER_DATA_EXPORT_DIR
     WHITELISTED_IPS = tuple() # a tuple of whitelisted ips for moderation
 
-    class Meta:
+    class Meta(object):
         prefix = 'askbot'
 
 
@@ -72,5 +73,5 @@ class TinyMCESettings(AppConf):
     }
 
 
-    class Meta:
+    class Meta(object):
         prefix = 'tinymce'

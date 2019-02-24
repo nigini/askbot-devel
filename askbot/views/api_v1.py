@@ -1,3 +1,5 @@
+from future import standard_library
+standard_library.install_aliases()
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, Http404

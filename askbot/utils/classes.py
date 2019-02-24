@@ -1,4 +1,5 @@
 """various utility classes"""
+from builtins import object
 from django.utils import timezone
 import datetime
 

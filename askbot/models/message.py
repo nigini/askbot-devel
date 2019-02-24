@@ -1,4 +1,5 @@
 '''Copied from Django 1.3.1 source code, it will use this model to'''
+from builtins import object
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy
@@ -16,7 +17,7 @@ class Message(models.Model):
     user = models.ForeignKey(User, related_name='_message_set')
     message = models.TextField(ugettext_lazy('message'))
 
-    class Meta:
+    class Meta(object):
         '''Added for backwards compatibility with databases
            migrated from django 1.3'''
         app_label = 'askbot'

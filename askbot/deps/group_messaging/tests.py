@@ -1,3 +1,6 @@
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 from askbot.deps.group_messaging.models import LastVisitTime
 from askbot.deps.group_messaging.models import Message
 from askbot.deps.group_messaging.models import MessageMemo
@@ -13,7 +16,7 @@ from django.test import TestCase
 from django.utils import timezone
 from mock import Mock
 import time
-import urlparse
+import urllib.parse
 
 MESSAGE_TEXT = 'test message text'
 
@@ -169,8 +172,8 @@ class ViewsTests(GroupMessagingTests):
         html_message = get_html_message(outbox[0])
         link = BeautifulSoup(html_message, 'html5lib').find('a', attrs={'class': 'thread-link'})
         url = link['href'].replace('&amp;', '&')
-        parsed_url = urlparse.urlparse(url)
-        url_data = urlparse.parse_qsl(parsed_url.query)
+        parsed_url = urllib.parse.urlparse(url)
+        url_data = urllib.parse.parse_qsl(parsed_url.query)
         self.client.login(user_id=self.recipient.id, method='force')
         response = self.client.get(parsed_url.path, url_data)
         dom = BeautifulSoup(response.content, 'html5lib')
@@ -356,8 +359,8 @@ class ModelsTests(GroupMessagingTests):
         soup = BeautifulSoup(html_message, 'html5lib')
         links = soup.find_all('a', attrs={'class': 'thread-link'})
         self.assertEqual(len(links), 1)
-        parse_result = urlparse.urlparse(links[0]['href'])
-        query = urlparse.parse_qs(parse_result.query.replace('&amp;', '&'))
+        parse_result = urllib.parse.urlparse(links[0]['href'])
+        query = urllib.parse.parse_qs(parse_result.query.replace('&amp;', '&'))
         self.assertEqual(query['thread_id'][0], str(root.id))
 
     def test_get_sent_threads(self):

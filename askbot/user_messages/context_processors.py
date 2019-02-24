@@ -4,6 +4,8 @@ Context processor for lightweight session messages.
 Time-stamp: <2008-07-19 23:16:19 carljm context_processors.py>
 
 """
+from builtins import str
+from builtins import object
 from django.conf import settings as django_settings
 from askbot.user_messages import get_and_delete_messages
 
@@ -43,14 +45,14 @@ class LazyMessages(object):
     def __len__(self):
         return len(self.messages)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.messages)
 
     def __str__(self):
         return self.__unicode__().encode('utf-8')
 
     def __unicode__(self):
-        return unicode(self.messages)
+        return str(self.messages)
 
     def __getitem__(self, *args, **kwargs):
         return self.messages.__getitem__(*args, **kwargs)

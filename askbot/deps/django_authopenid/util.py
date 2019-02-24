@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+from past.builtins import cmp
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from past.builtins import basestring
+from builtins import object
 import cgi
 import functools
-import httplib
+import http.client
 import jwt
 import random
 import re
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 from collections import OrderedDict
 from askbot.utils.html import site_url
 from askbot.utils.functions import format_setting_name
@@ -25,7 +31,7 @@ from django.utils.translation import ugettext as _
 from django.core.exceptions import ImproperlyConfigured
 from askbot.deps.django_authopenid import providers
 from askbot.deps.django_authopenid.exceptions import OAuthError
-from functools import reduce
+from functools import reduce, cmp_to_key
 
 try:
     from hashlib import md5
@@ -61,7 +67,7 @@ def email_is_blacklisted(email):
     return False
 
 
-class OpenID:
+class OpenID(object):
     def __init__(self, openid_, issued, attrs=None, sreg_=None):
         logging.debug('init janrain openid object')
         self.openid = openid_
@@ -186,10 +192,10 @@ def get_provider_name_by_endpoint(openid_url):
     Pair the openid_url with endpoint urls defined for different openid
     providers. Returns None if no matching url was found.
     """
-    parsed_uri = urlparse.urlparse(openid_url)
+    parsed_uri = urllib.parse.urlparse(openid_url)
     base_url = '{uri.scheme}://{uri.netloc}'.format(uri=parsed_uri)
     providers = get_enabled_login_providers()
-    for provider_data in providers.itervalues():
+    for provider_data in list(providers.values()):
         openid_url_match = (provider_data['type'].startswith('openid') and
             provider_data['openid_endpoint'] is not None and
             provider_data['openid_endpoint'].startswith(base_url))
@@ -226,7 +232,7 @@ def filter_enabled_providers(data):
     the input dictionary
     """
     delete_list = list()
-    for provider_key, provider_settings in data.items():
+    for provider_key, provider_settings in list(data.items()):
         name = provider_settings['name']
         if not is_login_method_enabled(name):
             delete_list.append(provider_key)
@@ -501,7 +507,7 @@ def get_enabled_major_login_providers():
         }
 
     def get_microsoft_azure_user_id(client):
-        conn = httplib.HTTPSConnection('graph.microsoft.com')
+        conn = http.client.HTTPSConnection('graph.microsoft.com')
         headers = {
             'Authorization' : 'Bearer {0}'.format(client.access_token),
             'Accept' : 'application/json',
@@ -767,7 +773,7 @@ get_enabled_minor_login_providers = add_custom_provider(get_enabled_minor_login_
 def have_enabled_federated_login_methods():
     providers = get_enabled_major_login_providers()
     providers.update(get_enabled_minor_login_providers())
-    provider_types = [provider['type'] for provider in providers.values()]
+    provider_types = [provider['type'] for provider in list(providers.values())]
     for provider_type in provider_types:
         if provider_type.startswith('openid') or provider_type == 'oauth':
             return True
@@ -788,7 +794,7 @@ def get_the_only_login_provider():
     """
     providers = get_enabled_login_providers()
     if len(providers) == 1:
-        provider = providers.values()[0]
+        provider = list(providers.values())[0]
         if not provider_requires_login_page(provider):
             return provider
     return None
@@ -806,7 +812,7 @@ def set_login_provider_tooltips(provider_dict, active_provider_names = None):
     depending on the type of provider and whether or not it's one of
     currently used
     """
-    for provider in provider_dict.values():
+    for provider in list(provider_dict.values()):
         if active_provider_names:
             if provider['name'] in active_provider_names:
                 if provider['type'] == 'password':
@@ -924,7 +930,7 @@ class OAuthConnection(object):
 
         url, params = url.split('?')
         if params:
-            kv = map(lambda v: v.split('='), params.split('&'))
+            kv = [v.split('=') for v in params.split('&')]
             if kv:
                 #kv must be list of two-element arrays
                 params = dict(kv)
@@ -937,11 +943,11 @@ class OAuthConnection(object):
     @classmethod
     def format_request_params(cls, params):
         #convert to tuple
-        params = params.items()
+        params = list(params.items())
         #sort lexicographically by key
-        params = sorted(params, cmp=lambda x, y: cmp(x[0], y[0]))
+        params = sorted(params, key=cmp_to_key(lambda x, y: cmp(x[0], y[0])))
         #urlencode the tuples
-        return urllib.urlencode(params)
+        return urllib.parse.urlencode(params)
 
     @classmethod
     def normalize_url_and_params(cls, url, params):
@@ -1083,14 +1089,14 @@ def ldap_check_password(username, password):
         ldap_session.unbind_s()
         return True
     except ldap.LDAPError as e:
-        logging.critical(unicode(e))
+        logging.critical(str(e))
         return False
 
 
 def mozilla_persona_get_email_from_assertion(assertion):
-    conn = httplib.HTTPSConnection('verifier.login.persona.org')
-    parsed_url = urlparse.urlparse(askbot_settings.APP_URL)
-    params = urllib.urlencode({
+    conn = http.client.HTTPSConnection('verifier.login.persona.org')
+    parsed_url = urllib.parse.urlparse(askbot_settings.APP_URL)
+    params = urllib.parse.urlencode({
                     'assertion': assertion,
                     'audience': parsed_url.scheme + '://' + parsed_url.netloc
                 })
@@ -1103,7 +1109,7 @@ def mozilla_persona_get_email_from_assertion(assertion):
         if email:
             return email
         else:
-            message = unicode(data)
+            message = str(data)
             message += '\nMost likely base url in /settings/QA_SITE_SETTINGS/ is incorrect'
             raise ImproperlyConfigured(message)
     #todo: nead more feedback to help debug fail cases

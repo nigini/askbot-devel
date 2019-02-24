@@ -1,5 +1,6 @@
 """utility functions used by Askbot test cases
 """
+from builtins import map
 from functools import wraps
 from markdown2 import Markdown
 from django.apps import apps
@@ -26,7 +27,7 @@ def with_settings(**settings_dict):
         def wrapped(*args, **kwargs):
             from askbot.conf import settings as askbot_settings
             backup_settings_dict = dict()
-            for key, value in settings_dict.items():
+            for key, value in list(settings_dict.items()):
                 backup_settings_dict[key] = getattr(askbot_settings, key)
                 askbot_settings.update(key, value)
 
@@ -35,7 +36,7 @@ def with_settings(**settings_dict):
             except:
                 raise
             finally:
-                for key, value in backup_settings_dict.items():
+                for key, value in list(backup_settings_dict.items()):
                     askbot_settings.update(key, value)
 
         return wrapped
@@ -84,7 +85,7 @@ def create_user(username=None,
     #because just below we will be replacing them with the new values
     user.notification_subscriptions.all().delete()
 
-    for feed_type, frequency in notification_schedule.items():
+    for feed_type, frequency in list(notification_schedule.items()):
         feed = models.EmailFeedSetting(
                         feed_type = feed_type,
                         frequency = frequency,
@@ -177,8 +178,8 @@ class AskbotTestCase(TestCase):
 
     def assertQuerysetEqual(self, qs1, qs2, transform=repr, ordered=True):
         '''borrowed from django1.4 and modified a bit'''
-        items = map(transform, qs1)
-        values = map(transform, qs2)
+        items = list(map(transform, qs1))
+        values = list(map(transform, qs2))
         if not ordered:
             return self.assertEqual(set(items), set(values))
         return self.assertEqual(list(items), list(values))

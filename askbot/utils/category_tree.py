@@ -25,6 +25,7 @@ example of desired structure, when input is parsed
         ]
     ]
 """
+from past.builtins import cmp
 from askbot.conf import settings as askbot_settings
 import simplejson
 

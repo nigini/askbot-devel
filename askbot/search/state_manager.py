@@ -1,6 +1,11 @@
 """Search state manager object"""
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import str
+from builtins import object
 import re
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import copy
 
 from django.core import urlresolvers
@@ -201,13 +206,13 @@ class SearchState(object):
 
         #order of items is important!!!
         if self.tags:
-            lst.append('tags:' + urllib.quote(smart_str(const.TAG_SEP.join(self.tags)), safe=self.SAFE_CHARS))
+            lst.append('tags:' + urllib.parse.quote(smart_str(const.TAG_SEP.join(self.tags)), safe=self.SAFE_CHARS))
         if self.author:
             lst.append('author:' + str(self.author))
         if self.page:
             lst.append('page:' + str(self.page))
         if self.query:
-            lst.append('query:' + urllib.quote(smart_str(self.query), safe=self.SAFE_CHARS))
+            lst.append('query:' + urllib.parse.quote(smart_str(self.query), safe=self.SAFE_CHARS))
         return '/'.join(lst) + '/'
 
     def deepcopy(self): # TODO: test me

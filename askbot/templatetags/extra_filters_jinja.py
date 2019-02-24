@@ -1,12 +1,17 @@
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from past.utils import old_div
 import datetime
 import pytz
 import re
 import time
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from coffin import template as coffin_template
 from bs4 import BeautifulSoup
 from django.core import exceptions as django_exceptions
-from django.utils.encoding import force_unicode
+from django.utils.encoding import force_str
 from django.utils.translation import ugettext as _
 from django.utils.translation import get_language as django_get_language
 from django.contrib.humanize.templatetags import humanize
@@ -80,9 +85,9 @@ def to_int(value):
 @register.filter
 def safe_urlquote(text, quote_plus=False):
     if quote_plus:
-        return urllib.quote_plus(text.encode('utf8'))
+        return urllib.parse.quote_plus(text.encode('utf8'))
     else:
-        return urllib.quote(text.encode('utf8'))
+        return urllib.parse.quote(text.encode('utf8'))
 
 @register.filter
 def show_block_to(block_name, user):
@@ -137,7 +142,7 @@ def transurl(url):
             u'string %s is not good for url - must be ascii' % url
         )
     if django_settings.ASKBOT_TRANSLATE_URL:
-        return urllib.quote(_(url).encode('utf-8'))
+        return urllib.parse.quote(_(url).encode('utf-8'))
     return url
 
 @register.filter
@@ -160,7 +165,7 @@ def country_flag_url(country_code):
 
 @register.filter
 def collapse(input):
-    input = unicode(input)
+    input = str(input)
     return ' '.join(input.split())
 
 
@@ -175,7 +180,7 @@ def get_age(birthday):
     month = birthday.month
     day = birthday.day
     diff = current_time - datetime.datetime(year,month,day,0,0,0)
-    return diff.days / 365
+    return old_div(diff.days, 365)
 
 @register.filter
 def equal(one, other):
@@ -369,7 +374,7 @@ def humanize_counter(number):
     if number == 0:
         return _('no')
     elif number >= 1000:
-        number = number/1000
+        number = old_div(number,1000)
         s = '%.1f' % number
         if s.endswith('.0'):
             return s[:-2] + 'k'
@@ -399,7 +404,7 @@ def sub_vars(text, user=None):
     sitename_re = re.compile(r'\{\{\s*SITE_NAME\s*\}\}')
     sitelink_re = re.compile(r'\{\{\s*SITE_LINK\s*\}\}')
 
-    text = force_unicode(text)
+    text = force_str(text)
 
     if user:
         if user.is_anonymous():

@@ -1,6 +1,12 @@
 """functions that directly handle user input
 """
 from __future__ import print_function
+from __future__ import division
+from builtins import input
+from builtins import next
+from past.builtins import basestring
+from builtins import object
+from past.utils import old_div
 import sys
 import time
 import logging
@@ -32,9 +38,9 @@ def choice_dialog(prompt_phrase, choices = None, invalid_phrase = None):
     assert(hasattr(choices, '__iter__'))
     assert(not isinstance(choices, basestring))
     while 1:
-        response = raw_input(
+        response = eval(input(
             '\n%s\ntype %s: ' % (prompt_phrase, '/'.join(choices))
-        )
+        ))
         if response in choices:
             return response
         elif invalid_phrase != None:
@@ -59,7 +65,7 @@ def numeric_choice_dialog(prompt_phrase, choices):
     assert(not isinstance(choices, basestring))
     choice_menu = "\n".join(["%d - %s" % (i,x) for i, x in enumerate(choices)])
     while True:
-        response = raw_input('\n%s\n%s> ' % (choice_menu, prompt_phrase))
+        response = eval(input('\n%s\n%s> ' % (choice_menu, prompt_phrase)))
         try:
             index = int(response)
         except ValueError:
@@ -95,7 +101,7 @@ def numeric_multiple_choice_dialog(prompt_phrase, choices, all_option=False):
     choice_indexes = []
     index = False
     while True:
-        response = raw_input('\n%s\n%s> ' % (choice_menu, prompt_phrase))
+        response = eval(input('\n%s\n%s> ' % (choice_menu, prompt_phrase)))
         selections = response.split()
         print("selections: %s" % selections)
         for c in selections:
@@ -126,7 +132,7 @@ def simple_dialog(prompt_phrase, required=False):
         if required:
             prompt_phrase += ' (required)'
 
-        response = raw_input(prompt_phrase + '\n> ').strip()
+        response = input(prompt_phrase + '\n> ').strip()
 
         if response or required is False:
             return response
@@ -152,7 +158,7 @@ def get_yes_or_no(prompt_phrase, default=None):
             prompt_phrase += '\n[%s] >' % default
         else:
             prompt_phrase += '\n >'
-        response = raw_input(prompt_phrase).strip()
+        response = input(prompt_phrase).strip()
         if not response and default:
             return default
         if response in ('yes', 'no'):
@@ -178,7 +184,7 @@ def open_new_file(prompt_phrase, extension = '', hint = None):
         file_object = path.create_file_if_does_not_exist(file_path, print_warning = True)
 
     while file_object == None:
-        file_path = raw_input(prompt_phrase)
+        file_path = eval(input(prompt_phrase))
         file_path = path.extend_file_name(file_path, extension)
         file_object = path.create_file_if_does_not_exist(file_path, print_warning = True)
 
@@ -235,8 +241,8 @@ class ProgressBar(object):
 
         tics_to_write = 0
         if self.length < self.max_barlen:
-            tics_to_write = self.max_barlen/self.length
-        elif int(self.counter) % (self.length/self.max_barlen) == 0:
+            tics_to_write = old_div(self.max_barlen,self.length)
+        elif int(self.counter) % (old_div(self.length,self.max_barlen)) == 0:
             tics_to_write = 1
 
         if self.curr_barlen + tics_to_write <= self.max_barlen:
@@ -250,7 +256,7 @@ class ProgressBar(object):
 
     def print_progress_percent(self):
         """prints percent of achieved progress"""
-        self.progress = ' %.2f%%' % (100 * (self.counter/self.length))
+        self.progress = ' %.2f%%' % (100 * (old_div(self.counter,self.length)))
         sys.stdout.write(self.progress)
         sys.stdout.flush()
 
@@ -259,7 +265,7 @@ class ProgressBar(object):
         self.backspace_progress_percent()
         sys.stdout.write('-' * (self.max_barlen - self.curr_barlen))
 
-    def next(self):
+    def __next__(self):
 
         try:
             result = next(self.iterable)

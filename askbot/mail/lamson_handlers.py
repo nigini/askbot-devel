@@ -1,3 +1,4 @@
+from builtins import str
 import functools
 import re
 import sys
@@ -171,9 +172,9 @@ def process_reply(func):
              received the notification.")
         except Exception as e:
             import sys
-            sys.stderr.write(unicode(e).encode('utf-8'))
+            sys.stderr.write(str(e).encode('utf-8'))
             import traceback
-            sys.stderr.write(unicode(traceback.format_exc()).encode('utf-8'))
+            sys.stderr.write(str(traceback.format_exc()).encode('utf-8'))
 
         if error is not None:
             from askbot.mail.messages import ReplyByEmailError

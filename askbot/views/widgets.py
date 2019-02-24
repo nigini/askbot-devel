@@ -1,3 +1,5 @@
+from future import standard_library
+standard_library.install_aliases()
 from django.template import RequestContext
 from django.template.loader import get_template
 from django.shortcuts import render

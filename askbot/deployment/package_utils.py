@@ -15,11 +15,11 @@ def get_coffin_version():
     if len(version) == 2:
         micro_version = 0
     elif len(version) == 3:
-        micro_version = version[2]
+        micro_version = int(version[2])
     else:
         raise ValueError('unsupported version of coffin %s' % '.'.join(version))
-    major_version = version[0]
-    minor_version = version[1]
+    major_version = int(version[0])
+    minor_version = int(version[1])
     return (major_version, minor_version, micro_version)
 
 def get_django_version():
