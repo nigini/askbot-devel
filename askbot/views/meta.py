@@ -28,9 +28,8 @@ from askbot.forms import FeedbackForm
 from askbot.forms import PageField
 from askbot.utils.url_utils import get_login_url
 from askbot.utils.forms import get_next_url
-from askbot.mail import mail_moderators, send_mail
 from askbot.mail.messages import FeedbackEmail
-from askbot.models import get_moderators, BadgeData, Award, User, Tag
+from askbot.models import get_users_by_role, BadgeData, Award, User, Tag
 from askbot.models import badges as badge_data
 from askbot.skins.loaders import render_text_into_skin
 from askbot.utils.decorators import moderators_only
@@ -154,12 +153,7 @@ def feedback(request):
                 data['email'] = form.cleaned_data.get('email', None)
 
             email = FeedbackEmail(data)
-
-            if askbot_settings.FEEDBACK_EMAILS:
-                recipients = re.split('\s*,\s*', askbot_settings.FEEDBACK_EMAILS)
-                email.send(recipients)
-            else:
-                email.send(get_moderators())
+            email.send(get_users_by_role('recv_feedback'))
 
             message = _('Thanks for the feedback!')
             request.user.message_set.create(message=message)
@@ -187,13 +181,13 @@ def badges(request):#user status/reputation system
     if askbot_settings.BADGES_MODE != 'public':
         raise Http404
     known_badges = badge_data.BADGES.keys()
-    badges = BadgeData.objects.filter(slug__in=known_badges)
+    badges = BadgeData.objects.filter(slug__in=known_badges) #pylint: disable=no-member
 
     badges = filter(lambda v: v.is_enabled(), badges)
 
     my_badge_ids = list()
     if request.user.is_authenticated():
-        my_badge_ids = Award.objects.filter(
+        my_badge_ids = Award.objects.filter( #pylint: disable=no-member
                                 user=request.user
                             ).values_list(
                                 'badge_id', flat=True
@@ -211,20 +205,38 @@ def badge(request, id):
     #todo: supplement database data with the stuff from badges.py
     badge = get_object_or_404(BadgeData, id=id)
 
-    badge_recipients = User.objects.filter(
-                            award_user__badge = badge
-                        ).annotate(
-                            last_awarded_at = Max('award_user__awarded_at'),
-                            award_count = Count('award_user')
-                        ).order_by(
-                            '-last_awarded_at'
-                        )
+    all_badge_recipients = User.objects.filter(
+        award_user__badge = badge
+    ).annotate(
+        last_awarded_at = Max('award_user__awarded_at'),
+        award_count = Count('award_user')
+    ).order_by(
+        '-last_awarded_at'
+    )
+
+    objects_list = Paginator(all_badge_recipients, askbot_settings.USERS_PAGE_SIZE)
+    page = PageField().clean(request.GET.get('page'))
+
+    try:
+        badge_recipients = objects_list.page(page)
+    except (EmptyPage, InvalidPage):
+        badge_recipients = objects_list.page(objects_list.num_pages)
+
+    paginator_data = {
+        'is_paginated' : (objects_list.num_pages > 1),
+        'pages': objects_list.num_pages,
+        'current_page_number': page,
+        'page_object': badge_recipients,
+        'base_url' : reverse('badge', kwargs={'id': badge.id}) + '?'
+    }
+    paginator_context = functions.setup_paginator(paginator_data)
 
     data = {
         'active_tab': 'badges',
-        'badge_recipients' : badge_recipients,
+        'badge_recipients': badge_recipients,
         'badge' : badge,
         'page_class': 'meta',
+        'paginator_context': paginator_context
     }
     return render(request, 'badge.html', data)
 
