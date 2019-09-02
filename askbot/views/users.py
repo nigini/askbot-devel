@@ -185,7 +185,7 @@ def show_users(request, by_group=False, group_id=None, group_slug=None):
     is_paginated = True
 
     form = forms.ShowUsersForm(request.REQUEST)
-    form.full_clean()#always valid
+    form.full_clean() # always valid
     sort_method = form.cleaned_data['sort']
     page = form.cleaned_data['page']
     search_query = form.cleaned_data['query']
@@ -1329,7 +1329,7 @@ def user_email_subscriptions(request, user, context):
 
     if request.method == 'POST':
         email_feeds_form = forms.EditUserEmailFeedsForm(request.POST)
-        tag_filter_form = forms.TagFilterSelectionForm(request.POST, instance=user)
+        tag_filter_form = forms.TagFilterSelectionForm(request.POST, instance=user.askbot_profile)
         if email_feeds_form.is_valid() and tag_filter_form.is_valid():
 
             tag_filter_saved = tag_filter_form.save()
@@ -1355,7 +1355,7 @@ def user_email_subscriptions(request, user, context):
         #initialize the form
         email_feeds_form = forms.EditUserEmailFeedsForm()
         email_feeds_form.set_initial_values(user)
-        tag_filter_form = forms.TagFilterSelectionForm(instance=user)
+        tag_filter_form = forms.TagFilterSelectionForm(instance=user.askbot_profile)
 
     data = {
         'active_tab': 'users',

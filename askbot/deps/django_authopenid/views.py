@@ -516,7 +516,7 @@ def signin(request, template_name='authopenid/signin.html'):
                         if user_info['success']:
                             if askbot_settings.LDAP_AUTOCREATE_USERS:
                                 #create new user or
-                                user = ldap_create_user(user_info).user
+                                user = ldap_create_user(user_info, request).user
                                 user = authenticate(method='force', user_id=user.pk)
                                 assert(user is not None)
                                 login(request, user)
@@ -1195,7 +1195,7 @@ def register(request, login_provider_name=None,
                 #they can override the default provided by LDAP
                 user_info['django_username'] = username
                 user_info['email'] = email
-                user = ldap_create_user(user_info).user
+                user = ldap_create_user(user_info, request).user
                 user = authenticate(user_id=user.id, method='force')
                 del request.session['ldap_user_info']
                 login(request, user)
@@ -1306,7 +1306,8 @@ def verify_email_and_register(request):
             cleanup_post_register_session(request)
 
             return HttpResponseRedirect(get_next_url(request))
-        except Exception as e:
+        except Exception as error:
+            logging.critical('Could not verify account: %s', unicode(error).encode('utf-8'))
             message = _(
                 'Sorry, registration failed. '
                 'The token can be already used or has expired. Please try again'
